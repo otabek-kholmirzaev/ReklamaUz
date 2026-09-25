@@ -22,3 +22,7 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+# Frontend environment
+
+Copy `.env.example` to `.env` to configure the Campaign Copilot API URL. Keep OpenAI API keys in the backend's root `.env` only.

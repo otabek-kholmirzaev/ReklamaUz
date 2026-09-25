@@ -21,8 +21,12 @@ export const Route = createFileRoute("/copilot")({
 
 type Message = { id: string; role: "assistant" | "user"; content: string };
 type Conversation = { id: string; title: string; messages: Message[] };
+type ChatResponse = { message: string; responseId: string; model: string };
 
 const STORAGE_KEY = "reklama-copilot-history";
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001"
+).replace(/\/$/, "");
 const WELCOME =
   "Hi, I’m your campaign copilot. Tell me what you’re promoting, who you want to reach, and your budget. I’ll help shape a clear brief and identify suitable creators.";
 
@@ -43,6 +47,9 @@ function Copilot() {
   const [activeId, setActiveId] = useState(() => conversations[0].id);
   const [draft, setDraft] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [retryMessage, setRetryMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -80,8 +87,8 @@ function Copilot() {
     setDraft("");
   };
 
-  const sendMessage = () => {
-    const message = draft.trim();
+  const sendMessage = async (messageToRetry?: string, isRetry = false) => {
+    const message = (messageToRetry ?? draft).trim();
     if (!message || !activeConversation) return;
 
     const userMessage: Message = {
@@ -89,32 +96,77 @@ function Copilot() {
       role: "user",
       content: message,
     };
-    const assistantMessage: Message = {
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content:
-        "Great brief. I’ll prioritize creators whose audience, platform and open booking windows fit your campaign. You can refine the goal, location, audience, budget, or preferred date anytime.",
-    };
+    if (!isRetry) {
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === activeConversation.id
+            ? {
+                ...conversation,
+                title:
+                  conversation.title === "New campaign"
+                    ? message.slice(0, 42) + (message.length > 42 ? "…" : "")
+                    : conversation.title,
+                messages: [...conversation.messages, userMessage],
+              }
+            : conversation,
+        ),
+      );
+      setDraft("");
+    }
+    setChatError(null);
+    setRetryMessage(null);
+    setIsSending(true);
 
-    setConversations((current) =>
-      current.map((conversation) =>
-        conversation.id === activeConversation.id
-          ? {
-              ...conversation,
-              title:
-                conversation.title === "New campaign"
-                  ? message.slice(0, 42) + (message.length > 42 ? "…" : "")
-                  : conversation.title,
-              messages: [
-                ...conversation.messages,
-                userMessage,
-                assistantMessage,
-              ],
-            }
-          : conversation,
-      ),
-    );
-    setDraft("");
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message,
+          history: (isRetry
+            ? activeConversation.messages.slice(0, -1)
+            : activeConversation.messages
+          )
+            .slice(-20)
+            .map(({ role, content }) => ({ role, content })),
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as
+        ChatResponse | { error?: string } | null;
+
+      if (!response.ok || !payload || !("message" in payload)) {
+        throw new Error(
+          payload && "error" in payload && payload.error
+            ? payload.error
+            : "Copilot could not respond right now.",
+        );
+      }
+
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: payload.message,
+      };
+      setConversations((current) =>
+        current.map((conversation) =>
+          conversation.id === activeConversation.id
+            ? {
+                ...conversation,
+                messages: [...conversation.messages, assistantMessage],
+              }
+            : conversation,
+        ),
+      );
+    } catch (error) {
+      setChatError(
+        error instanceof Error
+          ? error.message
+          : "Copilot could not respond right now.",
+      );
+      setRetryMessage(message);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -230,6 +282,30 @@ function Copilot() {
                   ))}
                 </div>
               )}
+              {isSending && (
+                <div className="flex gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                    <Sparkles className="h-4 w-4 animate-pulse" />
+                  </span>
+                  <p className="rounded-2xl bg-surface px-4 py-3 text-sm text-muted-foreground">
+                    Copilot is thinking…
+                  </p>
+                </div>
+              )}
+              {chatError && (
+                <div className="ml-11 flex flex-wrap items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm">
+                  <span className="text-muted-foreground">{chatError}</span>
+                  {retryMessage && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void sendMessage(retryMessage, true)}
+                    >
+                      Try again
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="border-t border-border p-4 sm:p-5">
@@ -240,7 +316,7 @@ function Copilot() {
                   onKeyDown={(event) => {
                     if (event.key === "Enter" && !event.shiftKey) {
                       event.preventDefault();
-                      sendMessage();
+                      void sendMessage();
                     }
                   }}
                   rows={2}
@@ -253,8 +329,8 @@ function Copilot() {
                   </span>
                   <Button
                     size="icon"
-                    onClick={sendMessage}
-                    disabled={!draft.trim()}
+                    onClick={() => void sendMessage()}
+                    disabled={!draft.trim() || isSending}
                     aria-label="Send message"
                   >
                     <Send className="h-4 w-4" />
