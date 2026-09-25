@@ -4,6 +4,7 @@ import {
   CalendarClock,
   CheckCircle2,
   ChevronRight,
+  ImagePlus,
   Instagram,
   Mail,
   Phone,
@@ -34,6 +35,7 @@ export const Route = createFileRoute("/studio")({
 
 const initialServices = [
   {
+    id: "story",
     name: "Instagram Story",
     price: "350",
     capacity: "15",
@@ -41,6 +43,7 @@ const initialServices = [
     to: "18:00",
   },
   {
+    id: "feed-post",
     name: "Instagram Feed Post",
     price: "650",
     capacity: "8",
@@ -54,6 +57,7 @@ function CreatorStudio() {
   const [agreed, setAgreed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [services, setServices] = useState(initialServices);
+  const [photoName, setPhotoName] = useState("");
 
   const updateService = (
     index: number,
@@ -122,6 +126,29 @@ function CreatorStudio() {
               title="Tell brands who they’re booking"
             >
               <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Profile picture">
+                  <label className="flex min-h-24 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-input bg-surface px-4 py-3 transition-colors hover:border-primary hover:bg-accent/30">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-card text-primary shadow-soft">
+                      <ImagePlus className="h-5 w-5" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold">
+                        {photoName || "Upload a profile picture"}
+                      </span>
+                      <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                        JPG, PNG or WebP · 4:5 works best
+                      </span>
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      onChange={(event) =>
+                        setPhotoName(event.target.files?.[0]?.name ?? "")
+                      }
+                    />
+                  </label>
+                </Field>
                 <Field label="Full name">
                   <Input defaultValue="Nilufar Ahmedova" required />
                 </Field>
@@ -230,13 +257,14 @@ function CreatorStudio() {
               <div className="mt-5 space-y-4">
                 {services.map((service, index) => (
                   <div
-                    key={service.name}
+                    key={service.id}
                     className="rounded-2xl border border-border bg-surface p-4"
                   >
                     <div className="grid gap-3 sm:grid-cols-[1.3fr_repeat(4,minmax(0,1fr))]">
                       <Field label="Service">
                         <Input
                           value={service.name}
+                          placeholder="e.g. Instagram Reel"
                           onChange={(event) =>
                             updateService(index, "name", event.target.value)
                           }
@@ -292,9 +320,10 @@ function CreatorStudio() {
                   setServices((current) => [
                     ...current,
                     {
-                      name: "Instagram Reel",
-                      price: "900",
-                      capacity: "6",
+                      id: crypto.randomUUID(),
+                      name: "",
+                      price: "",
+                      capacity: "",
                       from: "10:00",
                       to: "18:00",
                     },
