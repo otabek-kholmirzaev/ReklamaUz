@@ -13,13 +13,13 @@ import { categories, creators } from "@/lib/data";
 export const Route = createFileRoute("/discover")({
   head: () => ({
     meta: [
-      { title: "Discover Creators — ReklamaBazar" },
+      { title: "Discover Creators — Reklama.uz" },
       {
         name: "description",
         content:
           "Browse verified creators by category, platform, audience, price and availability, then book advertising directly.",
       },
-      { property: "og:title", content: "Discover Creators — ReklamaBazar" },
+      { property: "og:title", content: "Discover Creators — Reklama.uz" },
       {
         property: "og:description",
         content: "Filter creators by audience, price and availability and book in minutes.",

@@ -8,12 +8,12 @@ import { creators, type Creator } from "@/lib/data";
 export const Route = createFileRoute("/matches")({
   head: () => ({
     meta: [
-      { title: "AI Campaign Matches — ReklamaBazar" },
+      { title: "AI Campaign Matches — Reklama.uz" },
       {
         name: "description",
         content: "Creator recommendations ranked against your budget, audience, platform and dates.",
       },
-      { property: "og:title", content: "AI Campaign Matches — ReklamaBazar" },
+      { property: "og:title", content: "AI Campaign Matches — Reklama.uz" },
       {
         property: "og:description",
         content: "Ranked creator advertising matches for your campaign brief.",

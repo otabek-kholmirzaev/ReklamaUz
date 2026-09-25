@@ -17,7 +17,7 @@ export function Logo() {
       <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-[15px] font-bold text-primary-foreground">
         R
       </span>
-      <span className="font-display text-lg font-bold tracking-tight">ReklamaBazar</span>
+      <span className="font-display text-lg font-bold tracking-tight">Reklama.uz</span>
     </Link>
   );
 }

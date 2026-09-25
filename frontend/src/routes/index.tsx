@@ -18,13 +18,13 @@ import { creators, categories } from "@/lib/data";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ReklamaBazar — Book influencer advertising in minutes" },
+      { title: "Reklama.uz — Book influencer advertising in minutes" },
       {
         name: "description",
         content:
-          "Discover creators, compare advertising offers, choose a date, and book campaigns in minutes on ReklamaBazar.",
+          "Discover creators, compare advertising offers, choose a date, and book campaigns in minutes on Reklama.uz.",
       },
-      { property: "og:title", content: "ReklamaBazar — Find. Book. Promote." },
+      { property: "og:title", content: "Reklama.uz — Find. Book. Promote." },
       {
         property: "og:description",
         content: "The marketplace where businesses book advertising from creators like a service.",

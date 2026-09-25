@@ -17,13 +17,13 @@ import { categories } from "@/lib/data";
 export const Route = createFileRoute("/copilot")({
   head: () => ({
     meta: [
-      { title: "AI Campaign Copilot — ReklamaBazar" },
+      { title: "AI Campaign Copilot — Reklama.uz" },
       {
         name: "description",
         content:
-          "Describe your campaign in plain language and ReklamaBazar finds the best matching advertising opportunities.",
+          "Describe your campaign in plain language and Reklama.uz finds the best matching advertising opportunities.",
       },
-      { property: "og:title", content: "AI Campaign Copilot — ReklamaBazar" },
+      { property: "og:title", content: "AI Campaign Copilot — Reklama.uz" },
       {
         property: "og:description",
         content: "Plain-language campaign briefs matched to bookable creator advertising.",
