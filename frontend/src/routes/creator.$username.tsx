@@ -9,6 +9,7 @@ import {
   MapPin,
   MessageSquare,
   Music2,
+  Plus,
   Send,
   Star,
   TrendingUp,
@@ -21,6 +22,12 @@ import { useState } from "react";
 import { CreatorCard } from "@/components/creator-card";
 import { SiteFooter, SiteNav } from "@/components/site-nav";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -29,6 +36,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
@@ -37,8 +45,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   creators,
@@ -52,8 +61,8 @@ export const Route = createFileRoute("/creator/$username")({
   head: ({ params }) => {
     const creator = getCreator(params.username);
     const title = creator
-      ? `${creator.name} (@${creator.username}) — ReklamaBazar`
-      : "Creator not found — ReklamaBazar";
+      ? `${creator.name} (@${creator.username}) — Reklama.uz`
+      : "Creator not found — Reklama.uz";
     const description = creator
       ? `Book advertising with ${creator.name} — ${creator.followers} followers and ${creator.engagement} engagement on ${creator.platforms.join(", ")}.`
       : "This creator profile could not be found.";
@@ -108,10 +117,14 @@ function CreatorProfile({ creator }: { creator: Creator }) {
     new Set(creator.services.map((s) => s.platform)),
   );
   const [activePlatform, setActivePlatform] = useState(platforms[0] ?? "");
-  const [selectedId, setSelectedId] = useState(
-    creator.services.find((s) => s.platform === platforms[0])?.id,
+  const [selectedId, setSelectedId] = useState(() =>
+    firstAvailableId(creator, platforms[0]),
   );
   const selected = creator.services.find((s) => s.id === selectedId);
+  const [mode, setMode] = useState<"package" | "negotiate">("package");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [negotiateBudget, setNegotiateBudget] = useState("");
+  const [negotiateMessage, setNegotiateMessage] = useState("");
   const [bookingOpen, setBookingOpen] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
@@ -123,14 +136,32 @@ function CreatorProfile({ creator }: { creator: Creator }) {
       ? `More in ${creator.category}`
       : "More creators to explore";
 
-  const handlePlatformChange = (platform: string) => {
+  const unavailableDates = creator.unavailableDates.map(
+    (d) => new Date(`${d}T00:00:00`),
+  );
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const handleAccordionChange = (platform: string) => {
     setActivePlatform(platform);
-    setSelectedId(creator.services.find((s) => s.platform === platform)?.id);
+    if (platform) {
+      setSelectedId(firstAvailableId(creator, platform));
+      setMode("package");
+    }
   };
 
   const openBooking = () => {
     setConfirmed(false);
     setBookingOpen(true);
+  };
+
+  const closeBooking = () => {
+    setBookingOpen(false);
+    if (confirmed) {
+      setMode("package");
+      setNegotiateBudget("");
+      setNegotiateMessage("");
+    }
   };
 
   return (
@@ -356,51 +387,157 @@ function CreatorProfile({ creator }: { creator: Creator }) {
                 Advertising packages
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Choose a format to request a booking.
+                Choose a platform to see its formats and pricing.
               </p>
 
-              <Tabs
+              <Accordion
+                type="single"
+                collapsible
                 value={activePlatform}
-                onValueChange={handlePlatformChange}
-                className="mt-4"
+                onValueChange={handleAccordionChange}
+                className="mt-4 space-y-3"
               >
-                <TabsList className="w-full">
-                  {platforms.map((p) => (
-                    <TabsTrigger key={p} value={p} className="flex-1">
-                      {p}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                {platforms.map((p) => (
-                  <TabsContent key={p} value={p} className="mt-4 space-y-3">
-                    {creator.services
-                      .filter((s) => s.platform === p)
-                      .map((s) => (
-                        <ServiceOption
-                          key={s.id}
-                          service={s}
-                          active={s.id === selectedId}
-                          onSelect={() => setSelectedId(s.id)}
-                        />
-                      ))}
-                  </TabsContent>
-                ))}
-              </Tabs>
+                {platforms.map((p) => {
+                  const Icon = PLATFORM_ICON[p] ?? Instagram;
+                  const platformServices = creator.services.filter(
+                    (s) => s.platform === p,
+                  );
+                  const fromPrice = Math.min(
+                    ...platformServices.map((s) => s.price),
+                  );
+                  return (
+                    <AccordionItem
+                      key={p}
+                      value={p}
+                      className="rounded-2xl border border-border px-4"
+                    >
+                      <AccordionTrigger className="py-3 hover:no-underline">
+                        <div className="flex flex-1 items-center justify-between pr-2">
+                          <span className="flex items-center gap-2 font-semibold">
+                            <Icon className="h-4 w-4 text-primary" /> {p}
+                          </span>
+                          <span className="text-sm font-normal text-muted-foreground">
+                            From ${fromPrice}
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-3">
+                          {platformServices.map((s) => (
+                            <ServiceOption
+                              key={s.id}
+                              service={s}
+                              active={mode === "package" && s.id === selectedId}
+                              full={isFull(s)}
+                              onSelect={() => {
+                                setSelectedId(s.id);
+                                setMode("package");
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
 
-              <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
-                <span className="text-sm text-muted-foreground">Total</span>
-                <span className="font-display text-2xl font-bold">
-                  ${selected?.price ?? 0}
-                </span>
-              </div>
-              <Button
-                size="lg"
-                className="mt-4 w-full"
-                onClick={openBooking}
-                disabled={!selected}
+              <button
+                type="button"
+                onClick={() => setMode("negotiate")}
+                className={cn(
+                  "mt-3 flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition-colors",
+                  mode === "negotiate"
+                    ? "border-primary bg-accent/60"
+                    : "border-border bg-card hover:border-primary/40",
+                )}
               >
-                Request to book
-              </Button>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                  <MessageSquare className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">
+                    Negotiate a package
+                  </span>
+                  <span className="block text-sm text-muted-foreground">
+                    Tailor a collaboration to your needs: propose custom terms,
+                    pricing, or requirements.
+                  </span>
+                </span>
+                <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </button>
+
+              <Separator className="my-5" />
+
+              <div>
+                <h3 className="font-display text-sm font-bold">
+                  Check availability
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Greyed-out days are already booked.
+                </p>
+                <div className="mt-3 flex justify-center rounded-2xl border border-border bg-background p-2">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    disabled={[{ before: today }, ...unavailableDates]}
+                  />
+                </div>
+                {selectedDate && (
+                  <p className="mt-2 text-center text-sm font-medium">
+                    Selected: {formatDate(selectedDate)}
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-5 border-t border-border pt-4">
+                {mode === "package" ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Total
+                      </span>
+                      <span className="font-display text-2xl font-bold">
+                        ${selected?.price ?? 0}
+                      </span>
+                    </div>
+                    <Button
+                      size="lg"
+                      className="mt-4 w-full"
+                      onClick={openBooking}
+                      disabled={!selected || isFull(selected) || !selectedDate}
+                    >
+                      {selected && isFull(selected)
+                        ? "Fully booked this month"
+                        : "Request to book"}
+                    </Button>
+                    {selected && !isFull(selected) && !selectedDate && (
+                      <p className="mt-2 text-center text-xs text-muted-foreground">
+                        Pick a date above to continue
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Pricing
+                      </span>
+                      <span className="font-display text-lg font-bold">
+                        Custom
+                      </span>
+                    </div>
+                    <Button
+                      size="lg"
+                      className="mt-4 w-full"
+                      onClick={openBooking}
+                    >
+                      Send negotiation request
+                    </Button>
+                  </>
+                )}
+              </div>
               <p className="mt-3 text-center text-xs text-muted-foreground">
                 {creator.availability} • {creator.responseRate} response rate
               </p>
@@ -426,22 +563,75 @@ function CreatorProfile({ creator }: { creator: Creator }) {
 
       <SiteFooter />
 
-      <Dialog open={bookingOpen} onOpenChange={setBookingOpen}>
+      <Dialog
+        open={bookingOpen}
+        onOpenChange={(open) => (open ? setBookingOpen(true) : closeBooking())}
+      >
         <DialogContent>
           {confirmed ? (
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-success" /> Request sent
+                  <CheckCircle2 className="h-5 w-5 text-success" />{" "}
+                  {mode === "negotiate" ? "Proposal sent" : "Request sent"}
                 </DialogTitle>
                 <DialogDescription>
                   @{creator.username} has a {creator.responseRate} response rate
-                  and will confirm availability shortly. You'll be notified as
-                  soon as they respond.
+                  and will{" "}
+                  {mode === "negotiate"
+                    ? "review your proposal"
+                    : "confirm availability"}{" "}
+                  shortly. You'll be notified as soon as they respond.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button onClick={() => setBookingOpen(false)}>Done</Button>
+                <Button onClick={closeBooking}>Done</Button>
+              </DialogFooter>
+            </>
+          ) : mode === "negotiate" ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Negotiate a package</DialogTitle>
+                <DialogDescription>
+                  Describe what you'd like from @{creator.username} — format,
+                  timeline, and your budget.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="negotiate-budget">
+                    Proposed budget (optional)
+                  </Label>
+                  <Input
+                    id="negotiate-budget"
+                    placeholder="$600"
+                    value={negotiateBudget}
+                    onChange={(e) => setNegotiateBudget(e.target.value)}
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="negotiate-message">Your proposal</Label>
+                  <textarea
+                    id="negotiate-message"
+                    rows={4}
+                    value={negotiateMessage}
+                    onChange={(e) => setNegotiateMessage(e.target.value)}
+                    placeholder="e.g. 2 Instagram Stories + 1 Reel, delivered within 2 weeks…"
+                    className="mt-1.5 w-full resize-none rounded-xl border border-input bg-background p-3 text-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/25"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={closeBooking}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => setConfirmed(true)}
+                  disabled={!negotiateMessage.trim()}
+                >
+                  Send proposal
+                </Button>
               </DialogFooter>
             </>
           ) : (
@@ -462,6 +652,12 @@ function CreatorProfile({ creator }: { creator: Creator }) {
                   <span className="text-muted-foreground">Platform</span>
                   <span className="font-medium">{selected?.platform}</span>
                 </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-muted-foreground">Date</span>
+                  <span className="font-medium">
+                    {selectedDate ? formatDate(selectedDate) : "—"}
+                  </span>
+                </div>
                 <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
                   <span className="text-muted-foreground">Total</span>
                   <span className="font-display text-lg font-bold">
@@ -474,7 +670,7 @@ function CreatorProfile({ creator }: { creator: Creator }) {
                 before payment is collected.
               </p>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setBookingOpen(false)}>
+                <Button variant="outline" onClick={closeBooking}>
                   Cancel
                 </Button>
                 <Button onClick={() => setConfirmed(true)}>Send request</Button>
@@ -487,24 +683,48 @@ function CreatorProfile({ creator }: { creator: Creator }) {
   );
 }
 
+function isFull(service: Service) {
+  return !!service.limit && service.limit.used >= service.limit.max;
+}
+
+function firstAvailableId(creator: Creator, platform: string | undefined) {
+  const platformServices = creator.services.filter(
+    (s) => s.platform === platform,
+  );
+  return (platformServices.find((s) => !isFull(s)) ?? platformServices[0])?.id;
+}
+
+function formatDate(date: Date) {
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 function ServiceOption({
   service,
   active,
+  full,
   onSelect,
 }: {
   service: Service;
   active: boolean;
+  full: boolean;
   onSelect: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onSelect}
+      disabled={full}
       className={cn(
         "w-full rounded-2xl border p-4 text-left transition-colors",
-        active
-          ? "border-primary bg-accent/60"
-          : "border-border bg-card hover:border-primary/40",
+        full
+          ? "cursor-not-allowed border-border bg-muted/40 opacity-70"
+          : active
+            ? "border-primary bg-accent/60"
+            : "border-border bg-card hover:border-primary/40",
       )}
     >
       <div className="flex items-center justify-between gap-3">
@@ -519,6 +739,29 @@ function ServiceOption({
           </li>
         ))}
       </ul>
+      {service.limit && (
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {full ? "Fully booked" : "Availability"} {service.limit.period}
+            </span>
+            <span>
+              {service.limit.used}/{service.limit.max}
+            </span>
+          </div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className={cn(
+                "h-full rounded-full",
+                full ? "bg-warning" : "bg-primary",
+              )}
+              style={{
+                width: `${Math.min(100, (service.limit.used / service.limit.max) * 100)}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
     </button>
   );
 }

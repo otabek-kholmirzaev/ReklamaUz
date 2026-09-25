@@ -10,6 +10,7 @@ export type Service = {
   platform: string;
   price: number;
   bullets: string[];
+  limit?: { used: number; max: number; period: string };
 };
 
 export type Creator = {
@@ -34,6 +35,7 @@ export type Creator = {
   matchScore: number;
   matchReasons: string[];
   availability: string;
+  unavailableDates: string[];
 };
 
 export const creators: Creator[] = [
@@ -72,6 +74,7 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 400,
         bullets: ["1 Instagram Story", "Up to 24 hours", "1 product mention", "Client provides creative"],
+        limit: { used: 12, max: 15, period: "this month" },
       },
       {
         id: "ig-post",
@@ -79,6 +82,7 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 700,
         bullets: ["Feed post", "Caption included", "Product tag", "Pinned for 24 hours"],
+        limit: { used: 3, max: 8, period: "this month" },
       },
       {
         id: "ig-reel",
@@ -86,6 +90,7 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 900,
         bullets: ["30–60 second video", "Script support", "Product integration"],
+        limit: { used: 2, max: 6, period: "this month" },
       },
       {
         id: "tg-post",
@@ -93,6 +98,7 @@ export const creators: Creator[] = [
         platform: "Telegram",
         price: 300,
         bullets: ["Sponsored post", "Up to 24 hours pinned"],
+        limit: { used: 5, max: 10, period: "this month" },
       },
     ],
     matchScore: 96,
@@ -104,6 +110,7 @@ export const creators: Creator[] = [
       "High engagement among your target demographic",
     ],
     availability: "Available from Oct 3",
+    unavailableDates: ["2026-10-06", "2026-10-07", "2026-10-14", "2026-10-21", "2026-10-28"],
   },
   {
     username: "fitblogger",
@@ -140,6 +147,7 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 250,
         bullets: ["2 Instagram Stories", "Swipe-up link", "1 product mention"],
+        limit: { used: 5, max: 12, period: "this month" },
       },
       {
         id: "ig-reel",
@@ -147,6 +155,7 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 500,
         bullets: ["Up to 45 second video", "Workout integration", "Caption included"],
+        limit: { used: 4, max: 6, period: "this month" },
       },
     ],
     matchScore: 91,
@@ -157,6 +166,7 @@ export const creators: Creator[] = [
       "Two open slots in early October",
     ],
     availability: "Available from Oct 1",
+    unavailableDates: ["2026-10-02", "2026-10-09", "2026-10-16"],
   },
   {
     username: "techuz",
@@ -193,6 +203,7 @@ export const creators: Creator[] = [
         platform: "Telegram",
         price: 200,
         bullets: ["Sponsored post", "Pinned 12 hours", "Link included"],
+        limit: { used: 6, max: 10, period: "this month" },
       },
       {
         id: "ig-story",
@@ -200,11 +211,13 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 450,
         bullets: ["2 Stories", "Product demo", "Link sticker"],
+        limit: { used: 7, max: 10, period: "this month" },
       },
     ],
     matchScore: 84,
     matchReasons: ["Premium professional audience", "Strong Telegram reach", "Fast turnaround"],
     availability: "Available from Oct 8",
+    unavailableDates: ["2026-10-10", "2026-10-11", "2026-10-24"],
   },
   {
     username: "fashionista",
@@ -241,6 +254,7 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 350,
         bullets: ["3 Stories", "Styling sequence", "Link sticker"],
+        limit: { used: 10, max: 10, period: "this month" },
       },
       {
         id: "ig-post",
@@ -248,11 +262,13 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 800,
         bullets: ["Editorial feed post", "Brand tag", "Caption included"],
+        limit: { used: 2, max: 6, period: "this month" },
       },
     ],
     matchScore: 78,
     matchReasons: ["Strong lifestyle crossover", "High save rate on product posts"],
     availability: "Available from Oct 6",
+    unavailableDates: ["2026-10-08", "2026-10-15", "2026-10-22"],
   },
   {
     username: "comedian",
@@ -289,6 +305,7 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 500,
         bullets: ["2 Stories", "In-character mention", "Link sticker"],
+        limit: { used: 6, max: 8, period: "this month" },
       },
       {
         id: "ig-reel",
@@ -296,11 +313,13 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 1000,
         bullets: ["Sketch integration", "Script by creator", "Up to 60 seconds"],
+        limit: { used: 5, max: 5, period: "this month" },
       },
     ],
     matchScore: 74,
     matchReasons: ["Largest reach on the platform", "Very high completion rate"],
     availability: "Available from Oct 12",
+    unavailableDates: ["2026-10-13", "2026-10-20", "2026-10-27"],
   },
 ];
 
