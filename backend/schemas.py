@@ -52,7 +52,6 @@ class InfluencerProfileCreate(BaseModel):
     bio: str | None = None
     category_id: int = Field(gt=0)
     location: str | None = None
-    avatar_url: str | None = None
 
 
 class InfluencerProfileUpdate(BaseModel):
@@ -61,7 +60,6 @@ class InfluencerProfileUpdate(BaseModel):
     bio: str | None = None
     category_id: int | None = Field(default=None, gt=0)
     location: str | None = None
-    avatar_url: str | None = None
 
 
 class InfluencerProfileResponse(BaseModel):

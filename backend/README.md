@@ -48,8 +48,19 @@ Authorization: Bearer <access_token>
 
 ### `POST /api/influencer-profiles`
 
-Creates one profile for the authenticated `INFLUENCER` user. The `category_id` must reference an existing seeded category.
+Creates one profile for the authenticated `INFLUENCER` user using `multipart/form-data`. The `category_id` must reference an existing seeded category. Send the avatar as the `avatar` file field; supported types are JPG, PNG, WEBP, and GIF, up to 5 MB.
+
+Example form fields:
+
+```text
+username=creator_one
+display_name=Creator One
+bio=Content creator from Tashkent
+category_id=1
+location=Tashkent
+avatar=<image file>
+```
 
 ### `PATCH /api/influencer-profiles/me`
 
-Updates any supplied profile fields for the authenticated influencer. `CLIENT` users receive `403 Forbidden`.
+Updates any supplied profile fields for the authenticated influencer using `multipart/form-data`. A new `avatar` file replaces the stored avatar URL. `CLIENT` users receive `403 Forbidden`.

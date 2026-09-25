@@ -4,21 +4,21 @@ import os
 
 import sqlite3
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.staticfiles import StaticFiles
 
 from .database import connection_context, init_db
 from .schemas import (
     AuthResponse,
-    InfluencerProfileCreate,
     InfluencerProfileResponse,
-    InfluencerProfileUpdate,
     SignInRequest,
     SignUpRequest,
     UserResponse,
 )
 from .security import create_access_token, decode_access_token, hash_password, verify_password
+from .storage import UPLOADS_DIR, save_avatar
 
 
 @asynccontextmanager
@@ -28,6 +28,8 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="ReklamaUz API", version="0.1.0", lifespan=lifespan)
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:3000")],
@@ -105,7 +107,16 @@ def signin(payload: SignInRequest) -> AuthResponse:
 
 
 @app.post("/api/influencer-profiles", response_model=InfluencerProfileResponse, status_code=status.HTTP_201_CREATED)
-def create_influencer_profile(payload: InfluencerProfileCreate, user: dict = Depends(current_influencer_user)) -> InfluencerProfileResponse:
+async def create_influencer_profile(
+    username: str = Form(..., min_length=3, max_length=255),
+    display_name: str = Form(..., min_length=1, max_length=255),
+    category_id: int = Form(..., gt=0),
+    bio: str | None = Form(None),
+    location: str | None = Form(None),
+    avatar: UploadFile | None = File(None),
+    user: dict = Depends(current_influencer_user),
+) -> InfluencerProfileResponse:
+    avatar_url = await save_avatar(avatar) if avatar else None
     try:
         with connection_context() as connection:
             cursor = connection.execute(
@@ -114,7 +125,7 @@ def create_influencer_profile(payload: InfluencerProfileCreate, user: dict = Dep
                     (user_id, username, display_name, bio, category_id, location, avatar_url)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (user["id"], payload.username, payload.display_name, payload.bio, payload.category_id, payload.location, payload.avatar_url),
+                (user["id"], username, display_name, bio, category_id, location, avatar_url),
             )
             connection.commit()
             row = connection.execute("SELECT * FROM influencer_profiles WHERE id = ?", (cursor.lastrowid,)).fetchone()
@@ -131,8 +142,28 @@ def create_influencer_profile(payload: InfluencerProfileCreate, user: dict = Dep
 
 
 @app.patch("/api/influencer-profiles/me", response_model=InfluencerProfileResponse)
-def update_influencer_profile(payload: InfluencerProfileUpdate, user: dict = Depends(current_influencer_user)) -> InfluencerProfileResponse:
-    updates = payload.model_dump(exclude_unset=True)
+async def update_influencer_profile(
+    username: str | None = Form(None, min_length=3, max_length=255),
+    display_name: str | None = Form(None, min_length=1, max_length=255),
+    category_id: int | None = Form(None, gt=0),
+    bio: str | None = Form(None),
+    location: str | None = Form(None),
+    avatar: UploadFile | None = File(None),
+    user: dict = Depends(current_influencer_user),
+) -> InfluencerProfileResponse:
+    updates = {
+        field: value
+        for field, value in {
+            "username": username,
+            "display_name": display_name,
+            "category_id": category_id,
+            "bio": bio,
+            "location": location,
+        }.items()
+        if value is not None
+    }
+    if avatar:
+        updates["avatar_url"] = await save_avatar(avatar)
     if not updates:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one profile field is required")
 
