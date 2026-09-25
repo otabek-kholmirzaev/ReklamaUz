@@ -13,7 +13,7 @@ pip install -r backend/requirements.txt
 uvicorn backend.main:app --reload
 ```
 
-The SQLite database is created at `backend/reklama.db` on first startup. Set `JWT_SECRET` before using this outside local development.
+The SQLite database is created at `backend/reklama.db` on first startup. The 20 influencer categories are seeded automatically and safely on every startup. Set `JWT_SECRET` before using this outside local development.
 
 ## Endpoints
 

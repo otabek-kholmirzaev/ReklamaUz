@@ -7,6 +7,29 @@ from typing import Iterator
 
 DATABASE_PATH = Path(os.getenv("DATABASE_PATH", Path(__file__).with_name("reklama.db")))
 
+INFLUENCER_CATEGORIES = (
+    "Sports",
+    "Fitness",
+    "Football",
+    "Fashion",
+    "Beauty",
+    "Lifestyle",
+    "Travel",
+    "Food & Cooking",
+    "Technology",
+    "Gaming",
+    "Music",
+    "Comedy",
+    "Education",
+    "Business & Finance",
+    "Automotive",
+    "Health & Wellness",
+    "Family & Parenting",
+    "Art & Photography",
+    "Entertainment",
+    "News & Media",
+)
+
 
 def get_connection() -> sqlite3.Connection:
     connection = sqlite3.connect(DATABASE_PATH)
@@ -29,6 +52,21 @@ def init_db() -> None:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(255) NOT NULL UNIQUE,
+                description TEXT,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        connection.executemany(
+            "INSERT OR IGNORE INTO categories (name) VALUES (?)",
+            [(name,) for name in INFLUENCER_CATEGORIES],
+        )
+        connection.commit()
 
 
 @contextmanager
