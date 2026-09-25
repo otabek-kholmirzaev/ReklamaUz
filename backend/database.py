@@ -66,6 +66,24 @@ def init_db() -> None:
             "INSERT OR IGNORE INTO categories (name) VALUES (?)",
             [(name,) for name in INFLUENCER_CATEGORIES],
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS influencer_profiles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL UNIQUE,
+                username VARCHAR(255) NOT NULL UNIQUE,
+                display_name VARCHAR(255) NOT NULL,
+                bio TEXT,
+                category_id INTEGER NOT NULL,
+                location VARCHAR(255),
+                avatar_url VARCHAR(2048),
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (category_id) REFERENCES categories(id)
+            )
+            """
+        )
         connection.commit()
 
 

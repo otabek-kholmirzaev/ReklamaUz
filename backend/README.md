@@ -37,3 +37,19 @@ Allowed roles are `CLIENT` and `INFLUENCER`. A successful response returns a JWT
   "password": "strong-password"
 }
 ```
+
+## Influencer profile endpoints
+
+Both endpoints require the access token returned by signup/signin:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+### `POST /api/influencer-profiles`
+
+Creates one profile for the authenticated `INFLUENCER` user. The `category_id` must reference an existing seeded category.
+
+### `PATCH /api/influencer-profiles/me`
+
+Updates any supplied profile fields for the authenticated influencer. `CLIENT` users receive `403 Forbidden`.

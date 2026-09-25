@@ -54,3 +54,21 @@ def create_access_token(user_id: int, email: str, role: str) -> str:
     signature = hmac.new(JWT_SECRET.encode("utf-8"), signing_input, hashlib.sha256).digest()
     encoded_signature = base64.urlsafe_b64encode(signature).rstrip(b"=").decode("ascii")
     return f"{encoded_header}.{encoded_payload}.{encoded_signature}"
+
+
+def decode_access_token(token: str) -> dict:
+    try:
+        encoded_header, encoded_payload, encoded_signature = token.split(".")
+        signing_input = f"{encoded_header}.{encoded_payload}".encode("ascii")
+        expected_signature = hmac.new(JWT_SECRET.encode("utf-8"), signing_input, hashlib.sha256).digest()
+        actual_signature = base64.urlsafe_b64decode(encoded_signature + "=" * (-len(encoded_signature) % 4))
+        if not hmac.compare_digest(actual_signature, expected_signature):
+            raise ValueError("Invalid signature")
+
+        payload_bytes = base64.urlsafe_b64decode(encoded_payload + "=" * (-len(encoded_payload) % 4))
+        payload = json.loads(payload_bytes.decode("utf-8"))
+        if payload.get("exp", 0) < int(time.time()) or not payload.get("sub"):
+            raise ValueError("Invalid or expired token")
+        return payload
+    except (ValueError, TypeError, json.JSONDecodeError, UnicodeDecodeError):
+        raise ValueError("Invalid access token")

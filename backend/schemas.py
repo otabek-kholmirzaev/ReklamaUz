@@ -44,3 +44,34 @@ class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+class InfluencerProfileCreate(BaseModel):
+    username: str = Field(min_length=3, max_length=255)
+    display_name: str = Field(min_length=1, max_length=255)
+    bio: str | None = None
+    category_id: int = Field(gt=0)
+    location: str | None = None
+    avatar_url: str | None = None
+
+
+class InfluencerProfileUpdate(BaseModel):
+    username: str | None = Field(default=None, min_length=3, max_length=255)
+    display_name: str | None = Field(default=None, min_length=1, max_length=255)
+    bio: str | None = None
+    category_id: int | None = Field(default=None, gt=0)
+    location: str | None = None
+    avatar_url: str | None = None
+
+
+class InfluencerProfileResponse(BaseModel):
+    id: int
+    user_id: int
+    username: str
+    display_name: str
+    bio: str | None
+    category_id: int
+    location: str | None
+    avatar_url: str | None
+    created_at: datetime
+    updated_at: datetime
