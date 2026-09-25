@@ -15,6 +15,7 @@ import { Route as CopilotRouteImport } from './routes/copilot'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as StudioRouteImport } from './routes/studio'
 import { Route as CreatorUsernameRouteImport } from './routes/creator.$username'
 
 const IndexRoute = IndexRouteImport.update({
@@ -47,6 +48,11 @@ const MatchesRoute = MatchesRouteImport.update({
   path: '/matches',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudioRoute = StudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreatorUsernameRoute = CreatorUsernameRouteImport.update({
   id: '/creator/$username',
   path: '/creator/$username',
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/discover': typeof DiscoverRoute
   '/how-it-works': typeof HowItWorksRoute
   '/matches': typeof MatchesRoute
+  '/studio': typeof StudioRoute
   '/creator/$username': typeof CreatorUsernameRoute
 }
 export interface FileRoutesByTo {
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/discover': typeof DiscoverRoute
   '/how-it-works': typeof HowItWorksRoute
   '/matches': typeof MatchesRoute
+  '/studio': typeof StudioRoute
   '/creator/$username': typeof CreatorUsernameRoute
 }
 export interface FileRoutesById {
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/discover': typeof DiscoverRoute
   '/how-it-works': typeof HowItWorksRoute
   '/matches': typeof MatchesRoute
+  '/studio': typeof StudioRoute
   '/creator/$username': typeof CreatorUsernameRoute
 }
 export interface FileRouteTypes {
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/how-it-works'
     | '/matches'
+    | '/studio'
     | '/creator/$username'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/how-it-works'
     | '/matches'
+    | '/studio'
     | '/creator/$username'
   id:
     | '__root__'
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/how-it-works'
     | '/matches'
+    | '/studio'
     | '/creator/$username'
   fileRoutesById: FileRoutesById
 }
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   DiscoverRoute: typeof DiscoverRoute
   HowItWorksRoute: typeof HowItWorksRoute
   MatchesRoute: typeof MatchesRoute
+  StudioRoute: typeof StudioRoute
   CreatorUsernameRoute: typeof CreatorUsernameRoute
 }
 
@@ -165,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatchesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/studio': {
+      id: '/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/creator/$username': {
       id: '/creator/$username'
       path: '/creator/$username'
@@ -182,6 +202,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiscoverRoute: DiscoverRoute,
   HowItWorksRoute: HowItWorksRoute,
   MatchesRoute: MatchesRoute,
+  StudioRoute: StudioRoute,
   CreatorUsernameRoute: CreatorUsernameRoute,
 }
 export const routeTree = rootRouteImport

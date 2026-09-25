@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   BadgeCheck,
+  BarChart3,
   CheckCircle2,
   Clock,
   Eye,
@@ -569,6 +570,7 @@ function CreatorProfile({ creator }: { creator: Creator }) {
               </div>
             </div>
           </div>
+          <InstagramInsights creator={creator} />
         </section>
       </main>
 
@@ -763,6 +765,111 @@ function StatTile({
       <p className="mt-2 font-display text-lg font-bold">{value}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
+  );
+}
+
+function InstagramInsights({ creator }: { creator: Creator }) {
+  const insights = {
+    reach:
+      creator.username === "footballstar"
+        ? "486K"
+        : `${creator.avgViews} reach`,
+    impressions: creator.username === "footballstar" ? "1.1M" : "740K",
+    profileActivity: creator.username === "footballstar" ? "18.4K" : "9.6K",
+    gender:
+      creator.username === "footballstar"
+        ? "68% Female"
+        : creator.audience.gender,
+    age:
+      creator.username === "footballstar" ? "25–34: 42%" : creator.audience.age,
+    cities:
+      creator.username === "footballstar"
+        ? [
+            ["Tashkent", "61%"],
+            ["Namangan", "14%"],
+            ["Samarkand", "8%"],
+          ]
+        : [
+            ["Tashkent", "54%"],
+            ["Samarkand", "12%"],
+            ["Namangan", "9%"],
+          ],
+  };
+
+  return (
+    <section className="mt-10 rounded-3xl border border-border bg-surface p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+            <Instagram className="h-4 w-4" /> Instagram insights
+          </p>
+          <h2 className="mt-1 font-display text-xl font-bold">
+            Recent audience and content performance
+          </h2>
+        </div>
+        <span className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">
+          Mock import · last 30 days
+        </span>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <InfoTile label="Followers" value={creator.followers} />
+        <InfoTile label="Reach" value={insights.reach} />
+        <InfoTile label="Impressions" value={insights.impressions} />
+        <InfoTile label="Engagement" value={creator.engagement} />
+        <InfoTile label="Profile activity" value={insights.profileActivity} />
+      </div>
+
+      <div className="mt-6 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 font-semibold">
+            <Users className="h-4 w-4 text-primary" /> Audience
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <InfoTile label="Gender" value={insights.gender} />
+            <InfoTile label="Largest age group" value={insights.age} />
+          </div>
+          <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Top cities
+          </p>
+          <div className="mt-2 space-y-2">
+            {insights.cities.map(([city, share], index) => (
+              <div key={city} className="flex items-center gap-3 text-sm">
+                <span className="w-4 text-xs text-muted-foreground">
+                  {index + 1}
+                </span>
+                <span className="flex-1 font-medium">{city}</span>
+                <span className="text-muted-foreground">{share}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 font-semibold">
+            <BarChart3 className="h-4 w-4 text-primary" /> Content-level
+            performance
+          </div>
+          <div className="mt-4 space-y-3">
+            {[
+              ["Latest Reel", "642K plays", "8.1% engagement"],
+              ["Product Story set", "184K reach", "4.8K link taps"],
+              ["Feed post", "96K reach", "6.7% engagement"],
+            ].map(([content, result, detail]) => (
+              <div
+                key={content}
+                className="flex items-center justify-between gap-3 rounded-xl bg-surface px-4 py-3 text-sm"
+              >
+                <span className="font-medium">{content}</span>
+                <span className="text-right text-muted-foreground">
+                  <span className="block">{result}</span>
+                  <span className="text-xs">{detail}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
