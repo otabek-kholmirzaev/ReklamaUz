@@ -427,3 +427,14 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# macOS
+.DS_Store
+
+# Frontend (TanStack Start / Vite / Bun)
+frontend/node_modules/
+frontend/dist/
+frontend/.output/
+frontend/.vinxi/
+frontend/.tanstack/
+frontend/*.local
