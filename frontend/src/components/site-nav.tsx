@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const links = [
-  { to: "/discover", label: "Discover" },
+  { to: "/", label: "Discover" },
   { to: "/discover", label: "Creators" },
   { to: "/discover", label: "Categories" },
   { to: "/how-it-works", label: "How it Works" },
@@ -17,7 +17,9 @@ export function Logo() {
       <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-[15px] font-bold text-primary-foreground">
         R
       </span>
-      <span className="font-display text-lg font-bold tracking-tight">Reklama.uz</span>
+      <span className="font-display text-lg font-bold tracking-tight">
+        Reklama.uz
+      </span>
     </Link>
   );
 }
@@ -101,12 +103,24 @@ export function SiteNav() {
               <Search className="h-4.5 w-4.5" />
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Messages" className="hidden sm:inline-flex" asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Messages"
+            className="hidden sm:inline-flex"
+            asChild
+          >
             <Link to="/dashboard">
               <MessageSquare className="h-4.5 w-4.5" />
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Notifications" className="relative hidden sm:inline-flex" asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Notifications"
+            className="relative hidden sm:inline-flex"
+            asChild
+          >
             <Link to="/dashboard">
               <Bell className="h-4.5 w-4.5" />
               <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />

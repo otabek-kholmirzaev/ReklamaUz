@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CopilotRouteImport } from './routes/copilot'
 import { Route as DiscoverRouteImport } from './routes/discover'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as CreatorUsernameRouteImport } from './routes/creator.$username'
 
@@ -30,6 +31,11 @@ const DiscoverRoute = DiscoverRouteImport.update({
   path: '/discover',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MatchesRoute = MatchesRouteImport.update({
   id: '/matches',
   path: '/matches',
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/copilot': typeof CopilotRoute
   '/discover': typeof DiscoverRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/matches': typeof MatchesRoute
   '/creator/$username': typeof CreatorUsernameRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/copilot': typeof CopilotRoute
   '/discover': typeof DiscoverRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/matches': typeof MatchesRoute
   '/creator/$username': typeof CreatorUsernameRoute
 }
@@ -60,19 +68,33 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/copilot': typeof CopilotRoute
   '/discover': typeof DiscoverRoute
+  '/how-it-works': typeof HowItWorksRoute
   '/matches': typeof MatchesRoute
   '/creator/$username': typeof CreatorUsernameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/copilot' | '/discover' | '/matches' | '/creator/$username'
+  fullPaths:
+    | '/'
+    | '/copilot'
+    | '/discover'
+    | '/how-it-works'
+    | '/matches'
+    | '/creator/$username'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/copilot' | '/discover' | '/matches' | '/creator/$username'
+  to:
+    | '/'
+    | '/copilot'
+    | '/discover'
+    | '/how-it-works'
+    | '/matches'
+    | '/creator/$username'
   id:
     | '__root__'
     | '/'
     | '/copilot'
     | '/discover'
+    | '/how-it-works'
     | '/matches'
     | '/creator/$username'
   fileRoutesById: FileRoutesById
@@ -81,6 +103,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CopilotRoute: typeof CopilotRoute
   DiscoverRoute: typeof DiscoverRoute
+  HowItWorksRoute: typeof HowItWorksRoute
   MatchesRoute: typeof MatchesRoute
   CreatorUsernameRoute: typeof CreatorUsernameRoute
 }
@@ -108,6 +131,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DiscoverRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/matches': {
       id: '/matches'
       path: '/matches'
@@ -129,6 +159,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CopilotRoute: CopilotRoute,
   DiscoverRoute: DiscoverRoute,
+  HowItWorksRoute: HowItWorksRoute,
   MatchesRoute: MatchesRoute,
   CreatorUsernameRoute: CreatorUsernameRoute,
 }
