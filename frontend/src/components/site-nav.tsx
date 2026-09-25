@@ -117,10 +117,14 @@ export function SiteNav() {
             <Link to="/studio">Become a Creator</Link>
           </Button>
           <Button variant="outline" className="hidden sm:inline-flex" asChild>
-            <Link to="/auth">Log in</Link>
+            <Link to="/auth" search={{ mode: "login" }}>
+              Log in
+            </Link>
           </Button>
           <Button asChild>
-            <Link to="/auth">Sign up</Link>
+            <Link to="/auth" search={{ mode: "signup" }}>
+              Sign up
+            </Link>
           </Button>
         </div>
       </div>
