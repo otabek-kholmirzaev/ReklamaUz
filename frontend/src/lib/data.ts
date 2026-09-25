@@ -11,6 +11,8 @@ export type Service = {
   price: number;
   bullets: string[];
   limit?: { used: number; max: number; period: string };
+  /** Dates already reserved for this specific format, in addition to creator-wide holds. */
+  bookedDates?: string[];
 };
 
 export type Creator = {
@@ -30,7 +32,12 @@ export type Creator = {
   responseRate: string;
   rating: number;
   reviews: number;
-  audience: { age: string; gender: string; country: string; split: { label: string; value: number }[] };
+  audience: {
+    age: string;
+    gender: string;
+    country: string;
+    split: { label: string; value: number }[];
+  };
   services: Service[];
   matchScore: number;
   matchReasons: string[];
@@ -73,24 +80,41 @@ export const creators: Creator[] = [
         name: "Instagram Story",
         platform: "Instagram",
         price: 400,
-        bullets: ["1 Instagram Story", "Up to 24 hours", "1 product mention", "Client provides creative"],
+        bullets: [
+          "1 Instagram Story",
+          "Up to 24 hours",
+          "1 product mention",
+          "Client provides creative",
+        ],
         limit: { used: 12, max: 15, period: "this month" },
+        bookedDates: ["2026-10-03", "2026-10-12", "2026-10-20"],
       },
       {
         id: "ig-post",
         name: "Instagram Post",
         platform: "Instagram",
         price: 700,
-        bullets: ["Feed post", "Caption included", "Product tag", "Pinned for 24 hours"],
+        bullets: [
+          "Feed post",
+          "Caption included",
+          "Product tag",
+          "Pinned for 24 hours",
+        ],
         limit: { used: 3, max: 8, period: "this month" },
+        bookedDates: ["2026-10-09", "2026-10-18"],
       },
       {
         id: "ig-reel",
         name: "Instagram Reel",
         platform: "Instagram",
         price: 900,
-        bullets: ["30–60 second video", "Script support", "Product integration"],
+        bullets: [
+          "30–60 second video",
+          "Script support",
+          "Product integration",
+        ],
         limit: { used: 2, max: 6, period: "this month" },
+        bookedDates: ["2026-10-04", "2026-10-23"],
       },
       {
         id: "tg-post",
@@ -99,6 +123,7 @@ export const creators: Creator[] = [
         price: 300,
         bullets: ["Sponsored post", "Up to 24 hours pinned"],
         limit: { used: 5, max: 10, period: "this month" },
+        bookedDates: ["2026-10-05", "2026-10-19"],
       },
     ],
     matchScore: 96,
@@ -110,7 +135,13 @@ export const creators: Creator[] = [
       "High engagement among your target demographic",
     ],
     availability: "Available from Oct 3",
-    unavailableDates: ["2026-10-06", "2026-10-07", "2026-10-14", "2026-10-21", "2026-10-28"],
+    unavailableDates: [
+      "2026-10-06",
+      "2026-10-07",
+      "2026-10-14",
+      "2026-10-21",
+      "2026-10-28",
+    ],
   },
   {
     username: "fitblogger",
@@ -154,7 +185,11 @@ export const creators: Creator[] = [
         name: "Instagram Reel",
         platform: "Instagram",
         price: 500,
-        bullets: ["Up to 45 second video", "Workout integration", "Caption included"],
+        bullets: [
+          "Up to 45 second video",
+          "Workout integration",
+          "Caption included",
+        ],
         limit: { used: 4, max: 6, period: "this month" },
       },
     ],
@@ -215,7 +250,11 @@ export const creators: Creator[] = [
       },
     ],
     matchScore: 84,
-    matchReasons: ["Premium professional audience", "Strong Telegram reach", "Fast turnaround"],
+    matchReasons: [
+      "Premium professional audience",
+      "Strong Telegram reach",
+      "Fast turnaround",
+    ],
     availability: "Available from Oct 8",
     unavailableDates: ["2026-10-10", "2026-10-11", "2026-10-24"],
   },
@@ -266,7 +305,10 @@ export const creators: Creator[] = [
       },
     ],
     matchScore: 78,
-    matchReasons: ["Strong lifestyle crossover", "High save rate on product posts"],
+    matchReasons: [
+      "Strong lifestyle crossover",
+      "High save rate on product posts",
+    ],
     availability: "Available from Oct 6",
     unavailableDates: ["2026-10-08", "2026-10-15", "2026-10-22"],
   },
@@ -312,12 +354,19 @@ export const creators: Creator[] = [
         name: "Instagram Reel",
         platform: "Instagram",
         price: 1000,
-        bullets: ["Sketch integration", "Script by creator", "Up to 60 seconds"],
+        bullets: [
+          "Sketch integration",
+          "Script by creator",
+          "Up to 60 seconds",
+        ],
         limit: { used: 5, max: 5, period: "this month" },
       },
     ],
     matchScore: 74,
-    matchReasons: ["Largest reach on the platform", "Very high completion rate"],
+    matchReasons: [
+      "Largest reach on the platform",
+      "Very high completion rate",
+    ],
     availability: "Available from Oct 12",
     unavailableDates: ["2026-10-13", "2026-10-20", "2026-10-27"],
   },
@@ -337,7 +386,8 @@ export const categories = [
   "Education",
 ];
 
-export const getCreator = (username: string) => creators.find((c) => c.username === username);
+export const getCreator = (username: string) =>
+  creators.find((c) => c.username === username);
 
 export const reviews = [
   {
@@ -353,7 +403,8 @@ export const reviews = [
     company: "FitFuel",
     initials: "FF",
     rating: 5,
-    comment: "The reel felt native, not like an ad. We re-booked the same week.",
+    comment:
+      "The reel felt native, not like an ad. We re-booked the same week.",
     type: "Instagram Reel",
     date: "Aug 2026",
   },
@@ -361,7 +412,8 @@ export const reviews = [
     company: "Uzum Market",
     initials: "UM",
     rating: 4,
-    comment: "Solid reach and clean reporting. Creative feedback loop could be a bit faster.",
+    comment:
+      "Solid reach and clean reporting. Creative feedback loop could be a bit faster.",
     type: "Telegram Post",
     date: "Aug 2026",
   },

@@ -50,7 +50,12 @@ export function CreatorCard({ creator }: { creator: Creator }) {
         </div>
       </div>
 
-      <div className="space-y-3 p-4">
+      <Link
+        to="/creator/$username"
+        params={{ username: creator.username }}
+        className="block space-y-3 p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={`View ${creator.name}'s profile`}
+      >
         <div>
           <div className="flex items-center gap-1.5">
             <span className="font-display font-semibold">
@@ -92,7 +97,7 @@ export function CreatorCard({ creator }: { creator: Creator }) {
             </strong>
           </p>
         </div>
-      </div>
+      </Link>
     </article>
   );
 }

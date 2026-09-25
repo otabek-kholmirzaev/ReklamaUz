@@ -1,14 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { Bell, Menu, MessageSquare, Search, Sparkles } from "lucide-react";
+import { Bell, Menu, Search, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const links = [
-  { to: "/", label: "Discover" },
+  { to: "/", label: "Homepage" },
   { to: "/discover", label: "Creators" },
-  { to: "/discover", label: "Categories" },
-  { to: "/how-it-works", label: "How it Works" },
 ] as const;
 
 export function Logo() {
@@ -101,17 +99,6 @@ export function SiteNav() {
           <Button variant="ghost" size="icon" aria-label="Search" asChild>
             <Link to="/discover">
               <Search className="h-4.5 w-4.5" />
-            </Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Messages"
-            className="hidden sm:inline-flex"
-            asChild
-          >
-            <Link to="/dashboard">
-              <MessageSquare className="h-4.5 w-4.5" />
             </Link>
           </Button>
           <Button
