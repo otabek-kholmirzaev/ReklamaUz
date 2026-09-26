@@ -132,6 +132,18 @@ def init_db() -> None:
         )
         connection.execute(
             """
+            CREATE TABLE IF NOT EXISTS availability_blocks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                influencer_id INTEGER NOT NULL,
+                date DATE NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (influencer_id, date),
+                FOREIGN KEY (influencer_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 client_id INTEGER NOT NULL,
@@ -147,6 +159,19 @@ def init_db() -> None:
                 FOREIGN KEY (client_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (influencer_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (service_id) REFERENCES ad_services(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS pending_verifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email VARCHAR(320) NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                role VARCHAR(20) NOT NULL,
+                code VARCHAR(6) NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
         )

@@ -33,7 +33,7 @@ export function clearSession(): void {
   window.dispatchEvent(new CustomEvent(SESSION_CHANGED_EVENT));
 }
 
-async function authRequest(path: string, body: object): Promise<AuthSession> {
+async function post<T>(path: string, body: object): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${apiBaseUrl}${path}`, {
@@ -53,27 +53,47 @@ async function authRequest(path: string, body: object): Promise<AuthSession> {
     if (typeof detail === "string") throw new Error(detail);
     if (response.status === 409) throw new Error("An account with this email already exists.");
     if (response.status === 401) throw new Error("Invalid email or password.");
+    if (response.status === 410) throw new Error("Verification code has expired. Please sign up again.");
+    if (response.status === 422) throw new Error(payload?.detail ?? "Incorrect verification code.");
     throw new Error("Something went wrong. Please try again.");
   }
 
+  return payload as T;
+}
+
+function toSession(payload: { access_token: string; user: { id: number; email: string; role: string } }): AuthSession {
   return {
-    accessToken: payload.access_token as string,
+    accessToken: payload.access_token,
     user: {
-      id: payload.user.id as number,
-      email: payload.user.email as string,
+      id: payload.user.id,
+      email: payload.user.email,
       role: payload.user.role as "CLIENT" | "INFLUENCER",
     },
   };
 }
 
-export function signup(
+export type SignupPending = { status: "verification_sent"; email: string };
+
+export async function signup(
   email: string,
   password: string,
   role: "CLIENT" | "INFLUENCER",
-): Promise<AuthSession> {
-  return authRequest("/api/users/signup", { email, password, role });
+): Promise<SignupPending> {
+  return post<SignupPending>("/api/users/signup", { email, password, role });
 }
 
-export function signin(email: string, password: string): Promise<AuthSession> {
-  return authRequest("/api/users/signin", { email, password });
+export async function verifyEmail(email: string, code: string): Promise<AuthSession> {
+  const payload = await post<{ access_token: string; user: { id: number; email: string; role: string } }>(
+    "/api/users/verify-email",
+    { email, code },
+  );
+  return toSession(payload);
+}
+
+export async function signin(email: string, password: string): Promise<AuthSession> {
+  const payload = await post<{ access_token: string; user: { id: number; email: string; role: string } }>(
+    "/api/users/signin",
+    { email, password },
+  );
+  return toSession(payload);
 }

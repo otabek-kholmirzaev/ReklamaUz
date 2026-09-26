@@ -1,7 +1,17 @@
-from datetime import datetime
+from datetime import date as date_type, datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator
+
+
+def _parse_iso_date(value: str) -> str:
+    try:
+        parsed = date_type.fromisoformat(value)
+    except ValueError as error:
+        raise ValueError("Date must be in YYYY-MM-DD format") from error
+    if parsed < datetime.utcnow().date():
+        raise ValueError("Date cannot be in the past")
+    return parsed.isoformat()
 
 
 class UserRole(str, Enum):
@@ -44,6 +54,21 @@ class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+class SignupPendingResponse(BaseModel):
+    status: str = "verification_sent"
+    email: str
+
+
+class VerifyEmailRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+    code: str = Field(min_length=6, max_length=6)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
 
 
 class InfluencerProfileCreate(BaseModel):
@@ -124,6 +149,11 @@ class BookingCreate(BaseModel):
     date: str = Field(description="Booking date in YYYY-MM-DD format")
     description: str | None = None
 
+    @field_validator("date")
+    @classmethod
+    def validate_date(cls, value: str) -> str:
+        return _parse_iso_date(value)
+
 
 class BookingResponse(BaseModel):
     id: int
@@ -136,4 +166,20 @@ class BookingResponse(BaseModel):
     description: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class AvailabilityBlockCreate(BaseModel):
+    date: str = Field(description="Blocked date in YYYY-MM-DD format")
+
+    @field_validator("date")
+    @classmethod
+    def validate_date(cls, value: str) -> str:
+        return _parse_iso_date(value)
+
+
+class AvailabilityBlockResponse(BaseModel):
+    id: int
+    influencer_id: int
+    date: str
+    created_at: datetime
 

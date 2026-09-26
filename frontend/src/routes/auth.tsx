@@ -14,11 +14,12 @@ import { Logo } from "@/components/site-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { clearSession, getSession, SESSION_CHANGED_EVENT, setSession, signin, signup } from "@/lib/auth";
+import { clearSession, getSession, SESSION_CHANGED_EVENT, setSession, signin, signup, verifyEmail } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 type AuthMode = "login" | "signup";
 type UserRole = "CLIENT" | "INFLUENCER";
+type AuthStep = "form" | "verify";
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -63,6 +64,8 @@ function Auth() {
   const { mode: routeMode } = Route.useSearch();
   const navigate = useNavigate({ from: "/auth" });
   const [mode, setMode] = useState<AuthMode>(routeMode);
+  const [step, setStep] = useState<AuthStep>("form");
+  const [pendingEmail, setPendingEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<UserRole>("CLIENT");
   const [isLoading, setIsLoading] = useState(false);
@@ -87,6 +90,7 @@ function Auth() {
 
   const updateMode = (nextMode: AuthMode) => {
     setMode(nextMode);
+    setStep("form");
     setError(null);
     void navigate({ to: "/auth", search: { mode: nextMode } });
   };
@@ -100,10 +104,32 @@ function Auth() {
       const email = (data.get("email") as string).trim();
       const password = data.get("password") as string;
 
-      const session = isSignup
-        ? await signup(email, password, role)
-        : await signin(email, password);
+      if (isSignup) {
+        const result = await signup(email, password, role);
+        if (result.status === "verification_sent") {
+          setPendingEmail(result.email);
+          setStep("verify");
+        }
+      } else {
+        const session = await signin(email, password);
+        setSession(session);
+        void navigate({ to: "/" });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  const handleVerify = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setIsLoading(true);
+    try {
+      const data = new FormData(event.currentTarget);
+      const code = (data.get("code") as string).trim();
+      const session = await verifyEmail(pendingEmail, code);
       setSession(session);
       void navigate({ to: "/" });
     } catch (err) {
@@ -183,144 +209,200 @@ function Auth() {
               </div>
             </div>
 
-            <div className="mt-8">
-              <h2 className="font-display text-3xl font-extrabold">
-                {isSignup ? "Create your account" : "Welcome back"}
-              </h2>
-              <p className="mt-2 text-muted-foreground">
-                {isSignup
-                  ? "Start booking creator advertising in a few minutes."
-                  : "Log in to manage your campaigns and bookings."}
-              </p>
-            </div>
+            {step === "verify" ? (
+              <>
+                <div className="mt-8">
+                  <h2 className="font-display text-3xl font-extrabold">Check your email</h2>
+                  <p className="mt-2 text-muted-foreground">
+                    We sent a 6-digit code to{" "}
+                    <span className="font-medium text-foreground">{pendingEmail}</span>. Enter it
+                    below to activate your account.
+                  </p>
+                </div>
 
-            {/* Google — UI only, not connected */}
-            <Button type="button" variant="outline" className="mt-7 h-11 w-full" disabled>
-              <GoogleMark />
-              <span className="ml-2">Continue with Google</span>
-            </Button>
-
-            <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
-              or continue with email
-            </div>
-
-            <form className="space-y-4" onSubmit={(e) => void handleSubmit(e)}>
-              {/* Role selector — signup only */}
-              {isSignup && (
-                <div className="space-y-2">
-                  <Label>I am a…</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(
-                      [
-                        { value: "CLIENT", label: "Business / Brand", icon: Store },
-                        { value: "INFLUENCER", label: "Creator / Influencer", icon: UserRound },
-                      ] as const
-                    ).map(({ value, label, icon: Icon }) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setRole(value)}
-                        className={cn(
-                          "flex items-center gap-2 rounded-xl border p-3 text-left text-sm font-medium transition-colors",
-                          role === value
-                            ? "border-primary bg-accent text-accent-foreground"
-                            : "border-border bg-background hover:border-primary/40",
-                        )}
-                      >
-                        <Icon className="h-4 w-4 shrink-0" />
-                        {label}
-                      </button>
-                    ))}
+                <form className="mt-8 space-y-4" onSubmit={(e) => void handleVerify(e)}>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="code">Verification code</Label>
+                    <Input
+                      id="code"
+                      name="code"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="000000"
+                      maxLength={6}
+                      pattern="\d{6}"
+                      className="text-center text-2xl tracking-[0.5em]"
+                      required
+                      autoFocus
+                      disabled={isLoading}
+                    />
                   </div>
-                </div>
-              )}
 
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email address</Label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="you@company.com"
-                    className="pl-10"
-                    required
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  {!isSignup && (
-                    <button
-                      type="button"
-                      className="text-xs font-medium text-accent-foreground hover:underline"
-                    >
-                      Forgot password?
-                    </button>
+                  {error && (
+                    <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                      {error}
+                    </p>
                   )}
-                </div>
-                <div className="relative">
-                  <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete={isSignup ? "new-password" : "current-password"}
-                    placeholder="At least 8 characters"
-                    className="pl-10 pr-10"
-                    minLength={8}
-                    required
-                    disabled={isLoading}
-                  />
+
+                  <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Verifying…" : "Verify and create account"}
+                  </Button>
+                </form>
+
+                <p className="mt-5 text-center text-sm text-muted-foreground">
+                  Wrong email?{" "}
                   <button
                     type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    onClick={() => { setStep("form"); setError(null); }}
+                    className="font-semibold text-accent-foreground hover:underline"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    Go back
                   </button>
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="mt-8">
+                  <h2 className="font-display text-3xl font-extrabold">
+                    {isSignup ? "Create your account" : "Welcome back"}
+                  </h2>
+                  <p className="mt-2 text-muted-foreground">
+                    {isSignup
+                      ? "Start booking creator advertising in a few minutes."
+                      : "Log in to manage your campaigns and bookings."}
+                  </p>
                 </div>
-              </div>
 
-              {isSignup && (
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  By creating an account, you agree to the Terms of Service and Privacy Policy.
+                {/* Google — UI only, not connected */}
+                <Button type="button" variant="outline" className="mt-7 h-11 w-full" disabled>
+                  <GoogleMark />
+                  <span className="ml-2">Continue with Google</span>
+                </Button>
+
+                <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
+                  or continue with email
+                </div>
+
+                <form className="space-y-4" onSubmit={(e) => void handleSubmit(e)}>
+                  {/* Role selector — signup only */}
+                  {isSignup && (
+                    <div className="space-y-2">
+                      <Label>I am a…</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(
+                          [
+                            { value: "CLIENT", label: "Business / Brand", icon: Store },
+                            { value: "INFLUENCER", label: "Creator / Influencer", icon: UserRound },
+                          ] as const
+                        ).map(({ value, label, icon: Icon }) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setRole(value)}
+                            className={cn(
+                              "flex items-center gap-2 rounded-xl border p-3 text-left text-sm font-medium transition-colors",
+                              role === value
+                                ? "border-primary bg-accent text-accent-foreground"
+                                : "border-border bg-background hover:border-primary/40",
+                            )}
+                          >
+                            <Icon className="h-4 w-4 shrink-0" />
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email">Email address</Label>
+                    <div className="relative">
+                      <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="you@company.com"
+                        className="pl-10"
+                        required
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Password</Label>
+                      {!isSignup && (
+                        <button
+                          type="button"
+                          className="text-xs font-medium text-accent-foreground hover:underline"
+                        >
+                          Forgot password?
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete={isSignup ? "new-password" : "current-password"}
+                        placeholder="At least 8 characters"
+                        className="pl-10 pr-10"
+                        minLength={8}
+                        required
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {isSignup && (
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      By creating an account, you agree to the Terms of Service and Privacy Policy.
+                    </p>
+                  )}
+
+                  {error && (
+                    <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                      {error}
+                    </p>
+                  )}
+
+                  <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+                    {isLoading
+                      ? isSignup
+                        ? "Sending code…"
+                        : "Logging in…"
+                      : isSignup
+                        ? "Continue"
+                        : "Log in"}
+                  </Button>
+                </form>
+
+                <p className="mt-7 text-center text-sm text-muted-foreground">
+                  {isSignup ? "Already have an account?" : "New to Reklama.uz?"}{" "}
+                  <button
+                    type="button"
+                    onClick={() => updateMode(isSignup ? "login" : "signup")}
+                    className="font-semibold text-accent-foreground hover:underline"
+                  >
+                    {isSignup ? "Log in" : "Create an account"}
+                  </button>
                 </p>
-              )}
-
-              {error && (
-                <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                  {error}
-                </p>
-              )}
-
-              <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
-                {isLoading
-                  ? isSignup
-                    ? "Creating account…"
-                    : "Logging in…"
-                  : isSignup
-                    ? "Create account"
-                    : "Log in"}
-              </Button>
-            </form>
-
-            <p className="mt-7 text-center text-sm text-muted-foreground">
-              {isSignup ? "Already have an account?" : "New to Reklama.uz?"}{" "}
-              <button
-                type="button"
-                onClick={() => updateMode(isSignup ? "login" : "signup")}
-                className="font-semibold text-accent-foreground hover:underline"
-              >
-                {isSignup ? "Log in" : "Create an account"}
-              </button>
-            </p>
+              </>
+            )}
           </div>
           <Link to="/" className="text-center text-sm text-muted-foreground hover:text-foreground">
             ← Back to homepage

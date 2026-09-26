@@ -10,6 +10,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
 
 from .database import connection_context, init_db
+from .email import send_verification_email
 from .schemas import (
     AdServiceCreate,
     AdServiceResponse,
@@ -24,7 +25,9 @@ from .schemas import (
     InfluencerProfileResponse,
     SignInRequest,
     SignUpRequest,
+    SignupPendingResponse,
     UserResponse,
+    VerifyEmailRequest,
 )
 from .security import create_access_token, decode_access_token, hash_password, verify_password
 from .storage import UPLOADS_DIR, save_avatar
@@ -88,23 +91,67 @@ def current_influencer_user(credentials: HTTPAuthorizationCredentials | None = D
     return dict(user)
 
 
-@app.post("/api/users/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-def signup(payload: SignUpRequest) -> AuthResponse:
+@app.post("/api/users/signup", response_model=SignupPendingResponse, status_code=status.HTTP_201_CREATED)
+def signup(payload: SignUpRequest) -> SignupPendingResponse:
+    with connection_context() as connection:
+        existing = connection.execute("SELECT id FROM users WHERE email = ?", (payload.email,)).fetchone()
+        if existing:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account with this email already exists")
+
     password_hash = hash_password(payload.password)
+    code = f"{__import__('secrets').randbelow(1_000_000):06d}"
+    expires_at = datetime.utcnow() + __import__("datetime").timedelta(minutes=15)
+
+    with connection_context() as connection:
+        # Upsert: replace any existing pending verification for this email
+        connection.execute(
+            "DELETE FROM pending_verifications WHERE email = ?",
+            (payload.email,),
+        )
+        connection.execute(
+            "INSERT INTO pending_verifications (email, password_hash, role, code, expires_at) VALUES (?, ?, ?, ?, ?)",
+            (payload.email, password_hash, payload.role.value, code, expires_at.isoformat()),
+        )
+        connection.commit()
+
+    send_verification_email(payload.email, code)
+    return SignupPendingResponse(email=payload.email)
+
+
+@app.post("/api/users/verify-email", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+def verify_email(payload: VerifyEmailRequest) -> AuthResponse:
+    with connection_context() as connection:
+        row = connection.execute(
+            "SELECT * FROM pending_verifications WHERE email = ? ORDER BY created_at DESC LIMIT 1",
+            (payload.email,),
+        ).fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No pending verification for this email")
+
+    if datetime.utcnow() > datetime.fromisoformat(row["expires_at"]):
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Verification code has expired. Please sign up again.")
+
+    if row["code"] != payload.code:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Incorrect verification code")
+
     try:
         with connection_context() as connection:
             cursor = connection.execute(
                 "INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)",
-                (payload.email, password_hash, payload.role.value),
+                (row["email"], row["password_hash"], row["role"]),
             )
+            connection.execute("DELETE FROM pending_verifications WHERE email = ?", (payload.email,))
             connection.commit()
-            row = connection.execute("SELECT id, email, role, created_at FROM users WHERE id = ?", (cursor.lastrowid,)).fetchone()
+            user_row = connection.execute(
+                "SELECT id, email, role, created_at FROM users WHERE id = ?", (cursor.lastrowid,)
+            ).fetchone()
     except Exception as error:
         if "UNIQUE constraint failed: users.email" in str(error):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account with this email already exists") from error
         raise
 
-    user = row_to_user(row)
+    user = row_to_user(user_row)
     return AuthResponse(access_token=create_access_token(user.id, user.email, user.role), user=user)
 
 
