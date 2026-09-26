@@ -73,3 +73,11 @@ class InfluencerProfileResponse(BaseModel):
     avatar_url: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class AdTypeResponse(BaseModel):
+    id: int
+    name: str
+    created_at: datetime
+    updated_at: datetime
+

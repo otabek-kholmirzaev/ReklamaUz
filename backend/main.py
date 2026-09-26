@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .database import connection_context, init_db
 from .schemas import (
+    AdTypeResponse,
     AuthResponse,
     InfluencerProfileResponse,
     SignInRequest,
@@ -190,3 +191,21 @@ async def update_influencer_profile(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found") from error
         raise
     return row_to_profile(row)
+
+
+@app.get("/api/ad-types", response_model=list[AdTypeResponse])
+def get_ad_types() -> list[AdTypeResponse]:
+    with connection_context() as connection:
+        rows = connection.execute(
+            "SELECT id, name, created_at, updated_at FROM ad_types ORDER BY id ASC"
+        ).fetchall()
+        return [
+            AdTypeResponse(
+                id=row["id"],
+                name=row["name"],
+                created_at=datetime.fromisoformat(row["created_at"]) if isinstance(row["created_at"], str) else row["created_at"],
+                updated_at=datetime.fromisoformat(row["updated_at"]) if isinstance(row["updated_at"], str) else row["updated_at"],
+            )
+            for row in rows
+        ]
+

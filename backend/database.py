@@ -30,6 +30,20 @@ INFLUENCER_CATEGORIES = (
     "News & Media",
 )
 
+AD_TYPES = (
+    "INSTAGRAM_STORY",
+    "INSTAGRAM_POST",
+    "INSTAGRAM_REEL",
+    "TELEGRAM_POST",
+    "YOUTUBE_INTEGRATION",
+    "YOUTUBE_VIDEO",
+    "TIKTOK_VIDEO",
+    "BIRTHDAY_WISH",
+    "PERSONAL_SHOUTOUT",
+    "EVENT_APPEARANCE",
+    "OTHER",
+)
+
 
 def get_connection() -> sqlite3.Connection:
     connection = sqlite3.connect(DATABASE_PATH)
@@ -65,6 +79,20 @@ def init_db() -> None:
         connection.executemany(
             "INSERT OR IGNORE INTO categories (name) VALUES (?)",
             [(name,) for name in INFLUENCER_CATEGORIES],
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ad_types (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name VARCHAR(255) NOT NULL UNIQUE,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        connection.executemany(
+            "INSERT OR IGNORE INTO ad_types (name) VALUES (?)",
+            [(name,) for name in AD_TYPES],
         )
         connection.execute(
             """
