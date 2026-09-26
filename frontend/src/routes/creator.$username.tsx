@@ -4,9 +4,12 @@ import {
   BarChart3,
   CheckCircle2,
   Clock,
+  CreditCard,
   Eye,
+  FileText,
   Heart,
   Instagram,
+  Lock,
   MapPin,
   Music2,
   Send,
@@ -17,7 +20,8 @@ import {
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { CreatorCard } from "@/components/creator-card";
 import { SiteFooter, SiteNav } from "@/components/site-nav";
 import {
@@ -49,6 +53,15 @@ import {
 } from "@/lib/data";
 import { getSession } from "@/lib/auth";
 import { addBookingNotifications } from "@/lib/notifications";
+import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
+import {
+  apiFetch,
+  type AdServiceResponse,
+  type AdTypeResponse,
+  type AvailabilityResponse,
+  type BookingResponse,
+  type PublicInfluencerProfileResponse,
+} from "@/lib/api";
 
 export const Route = createFileRoute("/creator/$username")({
   head: ({ params }) => {
@@ -93,11 +106,113 @@ const TIME_OPTIONS = [
   "20:00",
 ];
 
+function platformFromAdType(adTypeName: string | undefined): string {
+  if (!adTypeName) return "Other";
+  if (adTypeName.startsWith("INSTAGRAM")) return "Instagram";
+  if (adTypeName.startsWith("TELEGRAM")) return "Telegram";
+  if (adTypeName.startsWith("YOUTUBE")) return "YouTube";
+  if (adTypeName.startsWith("TIKTOK")) return "TikTok";
+  return "Other";
+}
+
+function buildRealServices(
+  adServices: AdServiceResponse[],
+  adTypes: AdTypeResponse[] | undefined,
+): Service[] {
+  return adServices.map((service) => ({
+    id: String(service.id),
+    name: service.title,
+    platform: platformFromAdType(
+      adTypes?.find((t) => t.id === service.ad_type_id)?.name,
+    ),
+    price: service.price,
+    bullets: service.description ? [service.description] : [],
+  }));
+}
+
+const DEFAULT_CREATOR_PHOTO =
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=768&h=960&fit=crop";
+
+function buildRealOnlyCreator(
+  profile: PublicInfluencerProfileResponse,
+): Creator {
+  return {
+    username: profile.username,
+    name: profile.display_name,
+    photo: profile.avatar_url ?? DEFAULT_CREATOR_PHOTO,
+    verified: false,
+    category: profile.category_name,
+    tags: [profile.category_name],
+    location: profile.location ?? "Location not set",
+    bio: profile.bio ?? "This creator hasn't added a bio yet.",
+    platforms: [],
+    followers: "—",
+    followersNum: 0,
+    avgViews: "—",
+    engagement: "—",
+    responseRate: "—",
+    rating: 0,
+    reviews: 0,
+    audience: { age: "—", gender: "—", country: "—", split: [] },
+    services: [],
+    matchScore: 0,
+    matchReasons: [],
+    availability:
+      profile.available_from && profile.available_to
+        ? `Available ${profile.available_from}–${profile.available_to} daily`
+        : "Availability not set",
+    unavailableDates: [],
+  };
+}
+
+function useRealCreatorData(username: string) {
+  const { data: realProfile, isLoading: profileLoading } = useQuery({
+    queryKey: ["influencer-profile", username],
+    queryFn: () =>
+      apiFetch<PublicInfluencerProfileResponse>(
+        `/api/influencer-profiles/${username}`,
+      ),
+    retry: false,
+  });
+
+  const { data: realServices } = useQuery({
+    queryKey: ["influencer-services", username],
+    queryFn: () =>
+      apiFetch<AdServiceResponse[]>(
+        `/api/influencer-profiles/${username}/services`,
+      ),
+    enabled: !!realProfile,
+  });
+
+  const { data: adTypes } = useQuery({
+    queryKey: ["ad-types"],
+    queryFn: () => apiFetch<AdTypeResponse[]>("/api/ad-types"),
+    enabled: !!realProfile,
+  });
+
+  const { data: availability } = useQuery({
+    queryKey: ["availability", realProfile?.user_id],
+    queryFn: () =>
+      apiFetch<AvailabilityResponse>(
+        `/api/availability/${realProfile!.user_id}`,
+      ),
+    enabled: !!realProfile,
+  });
+
+  return { realProfile, realServices, adTypes, availability, profileLoading };
+}
+
 function CreatorProfileRoute() {
   const { username } = Route.useParams();
-  const creator = getCreator(username);
+  const mockCreator = getCreator(username);
+  const { realProfile, realServices, adTypes, availability, profileLoading } =
+    useRealCreatorData(username);
 
-  if (!creator) {
+  if (profileLoading && !mockCreator) {
+    return null;
+  }
+
+  if (!mockCreator && !realProfile) {
     return (
       <div className="min-h-screen bg-background">
         <SiteNav />
@@ -116,12 +231,61 @@ function CreatorProfileRoute() {
     );
   }
 
-  return <CreatorProfile creator={creator} />;
+  const base = mockCreator ?? buildRealOnlyCreator(realProfile!);
+  const creator: Creator = realProfile
+    ? {
+        ...base,
+        name: realProfile.display_name,
+        bio: realProfile.bio ?? base.bio,
+        category: realProfile.category_name,
+        location: realProfile.location ?? base.location,
+        photo: realProfile.avatar_url ?? base.photo,
+        availability:
+          realProfile.available_from && realProfile.available_to
+            ? `Available ${realProfile.available_from}–${realProfile.available_to} daily`
+            : base.availability,
+        unavailableDates: [
+          ...(availability?.blocked_dates ?? []),
+          ...(availability?.booked_dates ?? []),
+        ],
+        services:
+          realServices && realServices.length > 0
+            ? buildRealServices(realServices, adTypes)
+            : base.services,
+      }
+    : base;
+
+  return (
+    <CreatorProfile
+      creator={creator}
+      bookingContext={
+        realProfile && realServices && realServices.length > 0
+          ? {
+              isReal: true,
+              realServiceIds: new Set(realServices.map((s) => String(s.id))),
+            }
+          : { isReal: false, realServiceIds: new Set() }
+      }
+    />
+  );
 }
 
-function CreatorProfile({ creator }: { creator: Creator }) {
+function CreatorProfile({
+  creator,
+  bookingContext,
+}: {
+  creator: Creator;
+  bookingContext: { isReal: boolean; realServiceIds: Set<string> };
+}) {
   const navigate = useNavigate();
-  const [fav, setFav] = useState(false);
+  const [fav, setFav] = useState(() => isWishlisted(creator.username));
+
+  useEffect(() => {
+    const handler = () => setFav(isWishlisted(creator.username));
+    window.addEventListener(WISHLIST_EVENT, handler);
+    return () => window.removeEventListener(WISHLIST_EVENT, handler);
+  }, [creator.username]);
+
   const platforms = Array.from(
     new Set(creator.services.map((s) => s.platform)),
   );
@@ -135,6 +299,13 @@ function CreatorProfile({ creator }: { creator: Creator }) {
   const [endTime, setEndTime] = useState("12:00");
   const [bookingOpen, setBookingOpen] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [bookingStep, setBookingStep] = useState<1 | 2 | 3>(1);
+  const [campaignName, setCampaignName] = useState("");
+  const [campaignBrief, setCampaignBrief] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
+  const [cardHolder, setCardHolder] = useState("");
 
   const others = creators.filter((c) => c.username !== creator.username);
   const sameCategory = others.filter((c) => c.category === creator.category);
@@ -169,11 +340,69 @@ function CreatorProfile({ creator }: { creator: Creator }) {
       return;
     }
     setConfirmed(false);
+    setBookingStep(1);
+    setCampaignName("");
+    setCampaignBrief("");
+    setCardNumber("");
+    setCardExpiry("");
+    setCardCvc("");
+    setCardHolder("");
     setBookingOpen(true);
   };
 
   const closeBooking = () => {
     setBookingOpen(false);
+    setBookingError(null);
+    setBookingStep(1);
+  };
+
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const isRealService =
+    bookingContext.isReal &&
+    !!selected &&
+    bookingContext.realServiceIds.has(selected.id);
+
+  const bookingMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<BookingResponse>("/api/bookings", {
+        method: "POST",
+        body: JSON.stringify({
+          service_id: Number(selected!.id),
+          date: toDateKey(selectedDate!),
+          description: `Publishing window: ${startTime}–${endTime}`,
+        }),
+      }),
+    onSuccess: () => {
+      setBookingError(null);
+      if (selectedDate && selected) {
+        addBookingNotifications({
+          creatorUsername: creator.username,
+          creatorName: creator.name,
+          serviceName: selected.name,
+          bookingDate: selectedDate,
+        });
+      }
+      setConfirmed(true);
+    },
+    onError: (error) =>
+      setBookingError(
+        error instanceof Error ? error.message : "Could not send request.",
+      ),
+  });
+
+  const submitBooking = () => {
+    if (!selectedDate || !selected) return;
+    if (isRealService) {
+      bookingMutation.mutate();
+      return;
+    }
+    addBookingNotifications({
+      creatorUsername: creator.username,
+      creatorName: creator.name,
+      serviceName: selected.name,
+      bookingDate: selectedDate,
+    });
+    setConfirmed(true);
   };
 
   return (
@@ -261,7 +490,7 @@ function CreatorProfile({ creator }: { creator: Creator }) {
                 <Button
                   size="lg"
                   variant="ghost"
-                  onClick={() => setFav((v) => !v)}
+                  onClick={() => setFav(toggleWishlist(creator.username))}
                 >
                   <Heart
                     className={cn(
@@ -602,7 +831,7 @@ function CreatorProfile({ creator }: { creator: Creator }) {
         open={bookingOpen}
         onOpenChange={(open) => (open ? setBookingOpen(true) : closeBooking())}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           {confirmed ? (
             <>
               <DialogHeader>
@@ -615,71 +844,222 @@ function CreatorProfile({ creator }: { creator: Creator }) {
                   soon as they respond.
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter>
-                <Button onClick={closeBooking}>Done</Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle>Confirm booking request</DialogTitle>
-                <DialogDescription>
-                  Review the details before sending your request to @
-                  {creator.username}.
-                </DialogDescription>
-              </DialogHeader>
               <div className="rounded-2xl border border-border bg-surface p-4 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Service</span>
                   <span className="font-medium">{selected?.name}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-muted-foreground">Platform</span>
-                  <span className="font-medium">{selected?.platform}</span>
-                </div>
-                <div className="mt-2 flex items-center justify-between">
                   <span className="text-muted-foreground">Date</span>
-                  <span className="font-medium">
-                    {selectedDate ? formatDate(selectedDate) : "—"}
-                  </span>
+                  <span className="font-medium">{selectedDate ? formatDate(selectedDate) : "—"}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-muted-foreground">Time</span>
-                  <span className="font-medium">
-                    {startTime}–{endTime}
-                  </span>
+                  <span className="font-medium">{startTime}–{endTime}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
                   <span className="text-muted-foreground">Total</span>
-                  <span className="font-display text-lg font-bold">
-                    ${selected?.price}
-                  </span>
+                  <span className="font-display text-lg font-bold">${selected?.price}</span>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">
-                You won't be charged yet — the creator confirms availability
-                before payment is collected.
-              </p>
               <DialogFooter>
-                <Button variant="outline" onClick={closeBooking}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (selectedDate && selected) {
-                      addBookingNotifications({
-                        creatorUsername: creator.username,
-                        creatorName: creator.name,
-                        serviceName: selected.name,
-                        bookingDate: selectedDate,
-                      });
-                    }
-                    setConfirmed(true);
-                  }}
-                >
-                  Send request
-                </Button>
+                <Button onClick={closeBooking}>Done</Button>
               </DialogFooter>
+            </>
+          ) : (
+            <>
+              {/* Step indicator */}
+              <div className="mb-1 flex items-center gap-2">
+                {([1, 2, 3] as const).map((s) => (
+                  <div key={s} className="flex items-center gap-2">
+                    <span className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold",
+                      bookingStep === s
+                        ? "bg-primary text-primary-foreground"
+                        : bookingStep > s
+                          ? "bg-success/20 text-success"
+                          : "bg-muted text-muted-foreground",
+                    )}>
+                      {bookingStep > s ? <CheckCircle2 className="h-3.5 w-3.5" /> : s}
+                    </span>
+                    {s < 3 && <div className={cn("h-px w-6", bookingStep > s ? "bg-success/40" : "bg-border")} />}
+                  </div>
+                ))}
+                <span className="ml-1 text-xs text-muted-foreground">
+                  {bookingStep === 1 ? "Review" : bookingStep === 2 ? "Campaign details" : "Payment"}
+                </span>
+              </div>
+
+              {bookingStep === 1 && (
+                <>
+                  <DialogHeader>
+                    <DialogTitle>Review your booking</DialogTitle>
+                    <DialogDescription>
+                      Confirm the service and schedule before continuing.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="rounded-2xl border border-border bg-surface p-4 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Creator</span>
+                      <span className="font-medium">@{creator.username}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-muted-foreground">Service</span>
+                      <span className="font-medium">{selected?.name}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-muted-foreground">Platform</span>
+                      <span className="font-medium">{selected?.platform}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-muted-foreground">Date</span>
+                      <span className="font-medium">{selectedDate ? formatDate(selectedDate) : "—"}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-muted-foreground">Publishing window</span>
+                      <span className="font-medium">{startTime}–{endTime}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
+                      <span className="text-muted-foreground">Total</span>
+                      <span className="font-display text-lg font-bold">${selected?.price}</span>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={closeBooking}>Cancel</Button>
+                    <Button onClick={() => setBookingStep(2)}>
+                      Next — Campaign details
+                    </Button>
+                  </DialogFooter>
+                </>
+              )}
+
+              {bookingStep === 2 && (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" /> Campaign details
+                    </DialogTitle>
+                    <DialogDescription>
+                      Tell the creator what this campaign is about.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Campaign name <span className="text-muted-foreground">(optional)</span></label>
+                      <input
+                        type="text"
+                        value={campaignName}
+                        onChange={(e) => setCampaignName(e.target.value)}
+                        placeholder="e.g. Summer collection launch"
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Brief & instructions</label>
+                      <textarea
+                        value={campaignBrief}
+                        onChange={(e) => setCampaignBrief(e.target.value)}
+                        placeholder="Describe the product, key messaging, hashtags, any do's or don'ts for the creator…"
+                        rows={4}
+                        className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                      />
+                      <p className="text-xs text-muted-foreground">{campaignBrief.length}/1000 characters</p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setBookingStep(1)}>Back</Button>
+                    <Button onClick={() => setBookingStep(3)}>
+                      Next — Payment
+                    </Button>
+                  </DialogFooter>
+                </>
+              )}
+
+              {bookingStep === 3 && (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" /> Payment details
+                    </DialogTitle>
+                    <DialogDescription>
+                      Your card will not be charged until the creator confirms.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Card number</label>
+                      <div className="relative">
+                        <CreditCard className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={cardNumber}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, 16);
+                            setCardNumber(digits.replace(/(\d{4})(?=\d)/g, "$1 "));
+                          }}
+                          placeholder="1234 5678 9012 3456"
+                          className="w-full rounded-xl border border-input bg-background py-2.5 pl-10 pr-3 text-sm tracking-wider outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Expiry</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={cardExpiry}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+                            setCardExpiry(digits.length >= 3 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits);
+                          }}
+                          placeholder="MM/YY"
+                          className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">CVC</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={cardCvc}
+                            onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                            placeholder="123"
+                            className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Cardholder name</label>
+                      <input
+                        type="text"
+                        value={cardHolder}
+                        onChange={(e) => setCardHolder(e.target.value)}
+                        placeholder="Name on card"
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                      />
+                    </div>
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Lock className="h-3 w-3" /> Payments are secured and processed after creator confirmation. No charge today.
+                    </p>
+                  </div>
+                  {bookingError && (
+                    <p className="text-sm text-destructive">{bookingError}</p>
+                  )}
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setBookingStep(2)}>Back</Button>
+                    <Button
+                      onClick={submitBooking}
+                      disabled={bookingMutation.isPending || !cardNumber || !cardExpiry || !cardCvc || !cardHolder}
+                    >
+                      {bookingMutation.isPending ? "Sending…" : "Confirm & send request"}
+                    </Button>
+                  </DialogFooter>
+                </>
+              )}
             </>
           )}
         </DialogContent>
@@ -705,6 +1085,13 @@ function formatDate(date: Date) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function toDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function ServiceOption({

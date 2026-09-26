@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Bell, BellDot, CalendarClock, LogOut, Menu, Sparkles } from "lucide-react";
+import { Bell, BellDot, CalendarClock, Heart, LogOut, Menu, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -16,6 +16,7 @@ import {
   NOTIFICATIONS_EVENT,
   saveNotifications,
 } from "@/lib/notifications";
+import { getWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 
 const links = [
   { to: "/", label: "Homepage" },
@@ -95,6 +96,13 @@ export function SiteNav() {
                 >
                   Creator Studio
                 </Link>
+                <Link
+                  to="/wishlist"
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
+                >
+                  Wishlist
+                </Link>
                 {session ? (
                   <>
                     <div className="mt-3 border-t border-border pt-3">
@@ -158,6 +166,7 @@ export function SiteNav() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
+          <WishlistButton />
           <NotificationBell />
           <AuthArea />
         </div>
@@ -203,7 +212,7 @@ function AuthArea() {
   return (
     <>
       <Button variant="ghost" className="hidden lg:inline-flex" asChild>
-        <Link to="/studio">Become a Creator</Link>
+        <Link to="/become-a-creator">Become a Creator</Link>
       </Button>
       <Button variant="outline" className="hidden sm:inline-flex" asChild>
         <Link to="/auth" search={{ mode: "login" }}>
@@ -337,7 +346,7 @@ export function SiteFooter() {
           <Link to="/how-it-works" className="hover:text-foreground">
             How it works
           </Link>
-          <Link to="/studio" className="hover:text-foreground">
+          <Link to="/become-a-creator" className="hover:text-foreground">
             For creators
           </Link>
         </div>
