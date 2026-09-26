@@ -16,6 +16,8 @@ from .schemas import (
     AdServiceUpdate,
     AdTypeResponse,
     AuthResponse,
+    AvailabilityBlockCreate,
+    AvailabilityBlockResponse,
     BookingCreate,
     BookingResponse,
     BookingStatus,
@@ -37,16 +39,16 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="ReklamaUz API", version="0.1.0", lifespan=lifespan)
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
-_CORS_ORIGINS = [
-    o.strip()
-    for o in os.getenv("FRONTEND_URL", "http://localhost:3000,http://localhost:8080").split(",")
-    if o.strip()
-]
+_frontend_url = os.getenv("FRONTEND_URL", "")
+_CORS_ORIGINS = [o.strip() for o in _frontend_url.split(",") if o.strip()]
+# In development (no FRONTEND_URL set), allow any localhost port so Vite's auto-port-bump doesn't break auth
+_CORS_ORIGIN_REGEX = r"http://localhost:\d+" if not _frontend_url else None
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_CORS_ORIGINS,
+    allow_origin_regex=_CORS_ORIGIN_REGEX,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PATCH"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"]
 )
 
@@ -329,6 +331,74 @@ def current_any_user(credentials: HTTPAuthorizationCredentials | None = Depends(
 
 
 # ---------------------------------------------------------------------------
+# Availability
+# ---------------------------------------------------------------------------
+
+def row_to_availability_block(row) -> AvailabilityBlockResponse:
+    values = dict(row)
+    if isinstance(values["created_at"], str):
+        values["created_at"] = datetime.fromisoformat(values["created_at"])
+    return AvailabilityBlockResponse(**values)
+
+
+@app.get("/api/availability/me", response_model=list[AvailabilityBlockResponse])
+def get_my_availability(
+    user: dict = Depends(current_influencer_user),
+) -> list[AvailabilityBlockResponse]:
+    with connection_context() as connection:
+        rows = connection.execute(
+            "SELECT * FROM availability_blocks WHERE influencer_id = ? ORDER BY date ASC",
+            (user["id"],),
+        ).fetchall()
+    return [row_to_availability_block(row) for row in rows]
+
+
+@app.get("/api/availability/{influencer_id}", response_model=list[AvailabilityBlockResponse])
+def get_availability(influencer_id: int) -> list[AvailabilityBlockResponse]:
+    with connection_context() as connection:
+        rows = connection.execute(
+            "SELECT * FROM availability_blocks WHERE influencer_id = ? ORDER BY date ASC",
+            (influencer_id,),
+        ).fetchall()
+    return [row_to_availability_block(row) for row in rows]
+
+
+@app.post("/api/availability", response_model=AvailabilityBlockResponse, status_code=status.HTTP_201_CREATED)
+def create_availability_block(
+    payload: AvailabilityBlockCreate,
+    user: dict = Depends(current_influencer_user),
+) -> AvailabilityBlockResponse:
+    try:
+        with connection_context() as connection:
+            cursor = connection.execute(
+                "INSERT INTO availability_blocks (influencer_id, date) VALUES (?, ?)",
+                (user["id"], payload.date),
+            )
+            connection.commit()
+            row = connection.execute("SELECT * FROM availability_blocks WHERE id = ?", (cursor.lastrowid,)).fetchone()
+    except sqlite3.IntegrityError as error:
+        if "UNIQUE constraint failed" in str(error):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This date is already blocked") from error
+        raise
+    return row_to_availability_block(row)
+
+
+@app.delete("/api/availability/{date}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_availability_block(
+    date: str,
+    user: dict = Depends(current_influencer_user),
+) -> None:
+    with connection_context() as connection:
+        cursor = connection.execute(
+            "DELETE FROM availability_blocks WHERE influencer_id = ? AND date = ?",
+            (user["id"], date),
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blocked date not found")
+        connection.commit()
+
+
+# ---------------------------------------------------------------------------
 # Bookings
 # ---------------------------------------------------------------------------
 
@@ -359,6 +429,24 @@ def create_booking(
 
     if service["user_id"] == user["id"]:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot book your own service")
+
+    with connection_context() as connection:
+        blocked = connection.execute(
+            "SELECT 1 FROM availability_blocks WHERE influencer_id = ? AND date = ?",
+            (service["user_id"], payload.date),
+        ).fetchone()
+        if blocked is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This date is not available")
+
+        existing = connection.execute(
+            """
+            SELECT 1 FROM bookings
+            WHERE influencer_id = ? AND date = ? AND status IN ('PENDING', 'CONFIRMED')
+            """,
+            (service["user_id"], payload.date),
+        ).fetchone()
+        if existing is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This date is already booked")
 
     try:
         with connection_context() as connection:
