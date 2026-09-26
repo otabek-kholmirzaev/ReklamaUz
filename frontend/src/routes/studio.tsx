@@ -34,62 +34,56 @@ import {
   SESSION_CHANGED_EVENT,
 } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { studio as t } from "@/lib/i18n/studio";
+import {
+  AD_TYPE_LABELS,
+  CATEGORY_LABELS,
+  translateEnum,
+} from "@/lib/i18n/enums";
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
     meta: [
-      { title: "Creator Studio — Reklama.uz" },
+      { title: t.pageTitle },
       {
         name: "description",
-        content:
-          "Apply as a creator and set up your profile, services and availability on Reklama.uz.",
+        content: t.pageDescription,
       },
     ],
   }),
   component: CreatorStudio,
 });
 
-const BENEFITS = [
-  "Transparent, upfront pricing — you set your rates",
-  "Brands come to you — no cold outreach needed",
-  "Real-time booking calendar and payout dashboard",
-];
+const BENEFITS = t.benefits;
 
 const PLATFORMS = [
   {
     id: "instagram",
-    label: "Instagram",
+    label: t.platformInstagram,
     icon: Instagram,
     field: "instagram_handle" as const,
   },
   {
     id: "tiktok",
-    label: "TikTok",
+    label: t.platformTikTok,
     icon: Music2,
     field: "tiktok_handle" as const,
   },
   {
     id: "youtube",
-    label: "YouTube",
+    label: t.platformYouTube,
     icon: Youtube,
     field: "youtube_url" as const,
   },
   {
     id: "telegram",
-    label: "Telegram",
+    label: t.platformTelegram,
     icon: Send,
     field: "telegram_handle" as const,
   },
 ];
 
-const FOLLOWER_RANGES = [
-  "Under 10K",
-  "10K – 50K",
-  "50K – 100K",
-  "100K – 500K",
-  "500K – 1M",
-  "Over 1M",
-];
+const FOLLOWER_RANGES = t.followerRanges;
 
 function toDateKey(date: Date): string {
   const year = date.getFullYear();
@@ -207,7 +201,7 @@ function CreatorStudio() {
   const saveProfileMutation = useMutation({
     mutationFn: async () => {
       if (!session) {
-        throw new Error("Log in or sign up as a creator to save your profile.");
+        throw new Error(t.logInToSaveProfile);
       }
       const body = new FormData();
       body.set("username", form.username);
@@ -248,7 +242,7 @@ function CreatorStudio() {
     },
     onError: (error) =>
       setProfileError(
-        error instanceof Error ? error.message : "Could not save profile.",
+        error instanceof Error ? error.message : t.couldNotSaveProfile,
       ),
   });
 
@@ -276,7 +270,7 @@ function CreatorStudio() {
     },
     onError: (error) =>
       setServiceError(
-        error instanceof Error ? error.message : "Could not add service.",
+        error instanceof Error ? error.message : t.couldNotAddService,
       ),
   });
 
@@ -318,15 +312,13 @@ function CreatorStudio() {
         <SiteNav />
         <main className="mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center sm:px-6">
           <h1 className="font-display text-3xl font-bold">
-            Studio is for creator accounts
+            {t.studioForCreatorsTitle}
           </h1>
           <p className="mt-3 text-muted-foreground">
-            Your account is registered as a business/brand. Sign up with a
-            creator account to set up a public profile, services and
-            availability.
+            {t.studioForCreatorsBody}
           </p>
           <Button className="mt-6" asChild>
-            <Link to="/discover">Browse creators</Link>
+            <Link to="/discover">{t.browseCreators}</Link>
           </Button>
         </main>
         <SiteFooter />
@@ -340,14 +332,13 @@ function CreatorStudio() {
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
         <div className="max-w-3xl">
           <span className="ai-chip">
-            <Sparkles className="h-3.5 w-3.5" /> Creator Studio
+            <Sparkles className="h-3.5 w-3.5" /> {t.chip}
           </span>
           <h1 className="mt-5 font-display text-4xl font-extrabold sm:text-5xl">
-            Turn your audience into bookable inventory.
+            {t.heroHeading}
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-            Complete your public profile, set the services brands can request,
-            and manage the calendar clients see when they book you.
+            {t.heroBody}
           </p>
           <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
             {BENEFITS.map((item) => (
@@ -362,16 +353,16 @@ function CreatorStudio() {
         <div className="mt-10 grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
           <aside className="hidden rounded-3xl border border-border bg-surface p-4 lg:block lg:sticky lg:top-24 lg:h-fit">
             <p className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Profile setup
+              {t.profileSetup}
             </p>
             <ol className="mt-3 space-y-1">
               {[
-                ["1", "Personal information"],
-                ["2", "Platforms"],
-                ["3", "Audience & content"],
-                ["4", "Services & pricing"],
-                ["5", "Calendar & availability"],
-                ["6", "Agreement"],
+                ["1", t.step1],
+                ["2", t.step2],
+                ["3", t.step3],
+                ["4", t.step4],
+                ["5", t.step5],
+                ["6", t.step6],
               ].map(([number, label]) => (
                 <li
                   key={number}
@@ -390,11 +381,11 @@ function CreatorStudio() {
             {profileLoading ? (
               <SetupCard
                 icon={UserRound}
-                eyebrow="1. Personal information"
-                title="Tell brands who they’re booking"
+                eyebrow={t.personalInfoEyebrow}
+                title={t.personalInfoTitle}
               >
                 <p className="text-sm text-muted-foreground">
-                  Loading your profile…
+                  {t.loadingProfile}
                 </p>
               </SetupCard>
             ) : (
@@ -407,21 +398,21 @@ function CreatorStudio() {
               >
                 <SetupCard
                   icon={UserRound}
-                  eyebrow="1. Personal information"
-                  title="Tell brands who they’re booking"
+                  eyebrow={t.personalInfoEyebrow}
+                  title={t.personalInfoTitle}
                 >
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Profile picture">
+                    <Field label={t.profilePicture}>
                       <label className="flex min-h-24 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-input bg-surface px-4 py-3 transition-colors hover:border-primary hover:bg-accent/30">
                         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-card text-primary shadow-soft">
                           <ImagePlus className="h-5 w-5" />
                         </span>
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-semibold">
-                            {photoName || "Upload a profile picture"}
+                            {photoName || t.uploadProfilePicture}
                           </span>
                           <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-                            JPG, PNG or WebP · 4:5 works best
+                            {t.imageFormatHint}
                           </span>
                         </span>
                         <input
@@ -436,7 +427,7 @@ function CreatorStudio() {
                         />
                       </label>
                     </Field>
-                    <Field label="Full name">
+                    <Field label={t.fullName}>
                       <Input
                         value={form.display_name}
                         onChange={(event) =>
@@ -448,7 +439,7 @@ function CreatorStudio() {
                         required
                       />
                     </Field>
-                    <Field label="Phone number">
+                    <Field label={t.phoneNumber}>
                       <Input
                         type="tel"
                         value={form.phone}
@@ -458,7 +449,7 @@ function CreatorStudio() {
                         placeholder="+998 90 000 00 00"
                       />
                     </Field>
-                    <Field label="City / Region">
+                    <Field label={t.cityRegion}>
                       <Input
                         value={form.location}
                         onChange={(event) =>
@@ -467,10 +458,10 @@ function CreatorStudio() {
                             location: event.target.value,
                           }))
                         }
-                        placeholder="Tashkent, Uzbekistan"
+                        placeholder={t.cityPlaceholder}
                       />
                     </Field>
-                    <Field label="Public profile handle">
+                    <Field label={t.publicProfileHandle}>
                       <Input
                         value={form.username}
                         onChange={(event) =>
@@ -479,7 +470,7 @@ function CreatorStudio() {
                             username: event.target.value,
                           }))
                         }
-                        placeholder="e.g. fitblogger"
+                        placeholder={t.handlePlaceholder}
                         required
                       />
                     </Field>
@@ -488,12 +479,11 @@ function CreatorStudio() {
 
                 <SetupCard
                   icon={Instagram}
-                  eyebrow="2. Platforms"
-                  title="Where can brands find your content?"
+                  eyebrow={t.platformsEyebrow}
+                  title={t.platformsTitle}
                 >
                   <p className="text-sm text-muted-foreground">
-                    Select every platform you're active on, then add your handle
-                    so brands can verify your audience.
+                    {t.platformsBody}
                   </p>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {PLATFORMS.map(({ id, label, icon: Icon }) => (
@@ -516,7 +506,7 @@ function CreatorStudio() {
 
                   <div className="space-y-4">
                     {platforms.includes("instagram") && (
-                      <Field label="Instagram handle">
+                      <Field label={t.instagramHandle}>
                         <div className="relative">
                           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                             @
@@ -530,13 +520,13 @@ function CreatorStudio() {
                                 instagram_handle: event.target.value,
                               }))
                             }
-                            placeholder="yourusername"
+                            placeholder={t.usernamePlaceholder}
                           />
                         </div>
                       </Field>
                     )}
                     {platforms.includes("tiktok") && (
-                      <Field label="TikTok handle">
+                      <Field label={t.tiktokHandle}>
                         <div className="relative">
                           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                             @
@@ -550,13 +540,13 @@ function CreatorStudio() {
                                 tiktok_handle: event.target.value,
                               }))
                             }
-                            placeholder="yourusername"
+                            placeholder={t.usernamePlaceholder}
                           />
                         </div>
                       </Field>
                     )}
                     {platforms.includes("youtube") && (
-                      <Field label="YouTube channel URL">
+                      <Field label={t.youtubeChannelUrl}>
                         <Input
                           type="url"
                           value={form.youtube_url}
@@ -571,7 +561,7 @@ function CreatorStudio() {
                       </Field>
                     )}
                     {platforms.includes("telegram") && (
-                      <Field label="Telegram channel / username">
+                      <Field label={t.telegramHandle}>
                         <div className="relative">
                           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                             @
@@ -585,7 +575,7 @@ function CreatorStudio() {
                                 telegram_handle: event.target.value,
                               }))
                             }
-                            placeholder="yourchannel"
+                            placeholder={t.channelPlaceholder}
                           />
                         </div>
                       </Field>
@@ -595,11 +585,11 @@ function CreatorStudio() {
 
                 <SetupCard
                   icon={Users}
-                  eyebrow="3. Audience & content"
-                  title="Help brands understand your reach"
+                  eyebrow={t.audienceEyebrow}
+                  title={t.audienceTitle}
                 >
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Creator category">
+                    <Field label={t.creatorCategory}>
                       <select
                         value={form.category_id}
                         onChange={(event) =>
@@ -612,16 +602,16 @@ function CreatorStudio() {
                         className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                       >
                         <option value="" disabled>
-                          Select a category
+                          {t.selectCategory}
                         </option>
                         {categories?.map((c) => (
                           <option key={c.id} value={c.id}>
-                            {c.name}
+                            {translateEnum(CATEGORY_LABELS, c.name)}
                           </option>
                         ))}
                       </select>
                     </Field>
-                    <Field label="Total followers (approx.)">
+                    <Field label={t.totalFollowers}>
                       <select
                         value={form.followers_range}
                         onChange={(event) =>
@@ -632,7 +622,7 @@ function CreatorStudio() {
                         }
                         className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                       >
-                        <option value="">Select a range…</option>
+                        <option value="">{t.selectRange}</option>
                         {FOLLOWER_RANGES.map((range) => (
                           <option key={range} value={range}>
                             {range}
@@ -641,14 +631,14 @@ function CreatorStudio() {
                       </select>
                     </Field>
                   </div>
-                  <Field label="Tell brands about your content">
+                  <Field label={t.tellBrandsAboutContent}>
                     <textarea
                       rows={4}
                       value={form.bio}
                       onChange={(event) =>
                         setForm((f) => ({ ...f, bio: event.target.value }))
                       }
-                      placeholder="Describe your content style, audience, and why you'd be a great fit for brand partnerships…"
+                      placeholder={t.contentDescriptionPlaceholder}
                       className="w-full resize-none rounded-xl border border-input bg-background p-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                     />
                   </Field>
@@ -659,11 +649,11 @@ function CreatorStudio() {
                     type="submit"
                     disabled={saveProfileMutation.isPending}
                   >
-                    {profile ? "Save changes" : "Create profile"}
+                    {profile ? t.saveChanges : t.createProfile}
                   </Button>
                   {profile && (
                     <p className="inline-flex items-center gap-1.5 text-sm text-success">
-                      <CheckCircle2 className="h-4 w-4" /> Live at /creator/
+                      <CheckCircle2 className="h-4 w-4" /> {t.liveAt}
                       {profile.username}
                     </p>
                   )}
@@ -673,13 +663,10 @@ function CreatorStudio() {
 
             <SetupCard
               icon={CalendarClock}
-              eyebrow="4. Services & pricing"
-              title="Make your offers clear and bookable"
+              eyebrow={t.servicesEyebrow}
+              title={t.servicesTitle}
             >
-              <p className="text-sm text-muted-foreground">
-                Add each format you sell with a fixed price. Brands will see
-                these on your public profile.
-              </p>
+              <p className="text-sm text-muted-foreground">{t.servicesBody}</p>
               <div className="mt-5 space-y-3">
                 {(services ?? []).map((service) => (
                   <div
@@ -689,9 +676,15 @@ function CreatorStudio() {
                     <div>
                       <p className="font-semibold">{service.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {adTypes?.find((t) => t.id === service.ad_type_id)
-                          ?.name ?? "Service"}
-                        {!service.is_active && " · Inactive"}
+                        {(() => {
+                          const adTypeName = adTypes?.find(
+                            (at) => at.id === service.ad_type_id,
+                          )?.name;
+                          return adTypeName
+                            ? translateEnum(AD_TYPE_LABELS, adTypeName)
+                            : t.serviceFallback;
+                        })()}
+                        {!service.is_active && ` · ${t.inactive}`}
                       </p>
                     </div>
                     <span className="font-display text-lg font-bold">
@@ -701,7 +694,7 @@ function CreatorStudio() {
                 ))}
                 {services?.length === 0 && (
                   <p className="text-sm text-muted-foreground">
-                    No services yet — add your first one below.
+                    {t.noServicesYet}
                   </p>
                 )}
               </div>
@@ -713,7 +706,7 @@ function CreatorStudio() {
                   addServiceMutation.mutate();
                 }}
               >
-                <Field label="Ad type">
+                <Field label={t.adType}>
                   <select
                     value={newService.ad_type_id}
                     onChange={(event) =>
@@ -726,16 +719,16 @@ function CreatorStudio() {
                     className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                   >
                     <option value="" disabled>
-                      Select
+                      {t.select}
                     </option>
-                    {adTypes?.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name.replaceAll("_", " ")}
+                    {adTypes?.map((adType) => (
+                      <option key={adType.id} value={adType.id}>
+                        {translateEnum(AD_TYPE_LABELS, adType.name)}
                       </option>
                     ))}
                   </select>
                 </Field>
-                <Field label="Title">
+                <Field label={t.title}>
                   <Input
                     value={newService.title}
                     onChange={(event) =>
@@ -744,11 +737,11 @@ function CreatorStudio() {
                         title: event.target.value,
                       }))
                     }
-                    placeholder="e.g. Instagram Reel"
+                    placeholder={t.titlePlaceholder}
                     required
                   />
                 </Field>
-                <Field label="Price (USD)">
+                <Field label={t.priceUsd}>
                   <Input
                     type="number"
                     min="0"
@@ -768,7 +761,7 @@ function CreatorStudio() {
                     variant="outline"
                     disabled={addServiceMutation.isPending}
                   >
-                    Add service
+                    {t.addService}
                   </Button>
                 </div>
               </form>
@@ -779,16 +772,12 @@ function CreatorStudio() {
 
             <SetupCard
               icon={CalendarClock}
-              eyebrow="5. Calendar & availability"
-              title="Set the hours and days you take bookings"
+              eyebrow={t.calendarEyebrow}
+              title={t.calendarTitle}
             >
-              <p className="text-sm text-muted-foreground">
-                Set the daily hours you're open for bookings, then click any
-                dates on the calendar you're NOT available — clients won't be
-                able to book those days.
-              </p>
+              <p className="text-sm text-muted-foreground">{t.calendarBody}</p>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:max-w-xs">
-                <Field label="Available from">
+                <Field label={t.availableFrom}>
                   <Input
                     type="time"
                     value={form.available_from}
@@ -800,7 +789,7 @@ function CreatorStudio() {
                     }
                   />
                 </Field>
-                <Field label="Available to">
+                <Field label={t.availableTo}>
                   <Input
                     type="time"
                     value={form.available_to}
@@ -821,7 +810,7 @@ function CreatorStudio() {
                 onClick={() => saveProfileMutation.mutate()}
                 disabled={saveProfileMutation.isPending}
               >
-                Save hours
+                {t.saveHours}
               </Button>
 
               <div className="mt-6 inline-block rounded-2xl border border-border bg-surface p-2">
@@ -840,8 +829,8 @@ function CreatorStudio() {
 
             <SetupCard
               icon={ShieldCheck}
-              eyebrow="6. Creator agreement"
-              title="Confirm your listing is accurate"
+              eyebrow={t.agreementEyebrow}
+              title={t.agreementTitle}
             >
               <label className="flex items-start gap-3 rounded-2xl border border-border bg-surface p-4 text-sm">
                 <Checkbox
@@ -849,26 +838,22 @@ function CreatorStudio() {
                   onCheckedChange={(value) => setAgreed(value === true)}
                 />
                 <span className="leading-relaxed">
-                  I confirm that my profile, package pricing and availability
-                  are accurate. I agree to the{" "}
+                  {t.agreementText}
                   <a
                     href="#terms"
                     className="font-semibold text-accent-foreground hover:underline"
                   >
-                    Creator Terms
+                    {t.creatorTerms}
                   </a>
-                  , marketplace standards, and payment policy.
+                  {t.agreementTextEnd}
                 </span>
               </label>
               {agreed && profile && (
                 <div className="mt-4 flex items-start gap-3 rounded-2xl bg-accent p-4 text-sm text-accent-foreground">
                   <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0" />
                   <span>
-                    <strong className="block">
-                      Your creator profile is live
-                    </strong>
-                    Brands can find and book you at /creator/{profile.username}.
-                    You can edit services and availability at any time.
+                    <strong className="block">{t.profileIsLive}</strong>
+                    {t.profileIsLiveBody(profile.username)}
                   </span>
                 </div>
               )}
@@ -878,11 +863,11 @@ function CreatorStudio() {
                     to="/creator/$username"
                     params={{ username: profile?.username ?? "" }}
                   >
-                    View public profile
+                    {t.viewPublicProfile}
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                  <Link to="/dashboard">Go to dashboard</Link>
+                  <Link to="/dashboard">{t.goToDashboard}</Link>
                 </Button>
               </div>
             </SetupCard>

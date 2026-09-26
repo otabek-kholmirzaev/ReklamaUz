@@ -125,13 +125,16 @@ export const creatorProfile = {
   stepBirthdayDetails: "Tabrik tafsilotlari",
   nextBirthdayDetails: "Keyingisi — Tabrik tafsilotlari",
   birthdayDetailsTitle: "Tabrik tafsilotlari",
-  birthdayDetailsDescription: "Kreator uchun tabrik matnini va yetkazib berish ma’lumotlarini kiriting.",
+  birthdayDetailsDescription:
+    "Kreator uchun tabrik matnini va yetkazib berish ma’lumotlarini kiriting.",
   birthdayGreetingLabel: "Tabrik matni",
-  birthdayGreetingPlaceholder: "masalan, \"Aziz onam, tug’ilgan kuningiz muborak bo’lsin! Siz mening hayotimdagi eng muhim insonsiz…\"",
+  birthdayGreetingPlaceholder:
+    'masalan, "Aziz onam, tug’ilgan kuningiz muborak bo’lsin! Siz mening hayotimdagi eng muhim insonsiz…"',
   birthdayRecipientLabel: "Kimni tabriklash",
-  birthdayRecipientPlaceholder: "masalan, \"onam\", \"akam\", \"do’stim\"",
+  birthdayRecipientPlaceholder: 'masalan, "onam", "akam", "do’stim"',
   deliveryDateTimeLabel: "Yetkazib berish sanasi va vaqti",
-  deliveryDateTimeHint: "Video shu sana va vaqtda Telegram orqali yetkazib beriladi.",
+  deliveryDateTimeHint:
+    "Video shu sana va vaqtda Telegram orqali yetkazib beriladi.",
   recipientPhoneLabel: "Telefon raqami",
   recipientPhonePlaceholder: "+998 90 000 00 00",
   recipientPhoneHint: "Ushbu raqamga video Telegram orqali yuboriladi.",

@@ -31,7 +31,9 @@ from .schemas import (
     BookingCreate,
     BookingResponse,
     BookingStatus,
+    BookingStatusUpdate,
     CategoryResponse,
+    InfluencerListItemResponse,
     InfluencerProfileResponse,
     PublicInfluencerProfileResponse,
     SignInRequest,
@@ -428,6 +430,47 @@ def row_to_public_profile(row) -> PublicInfluencerProfileResponse:
     return PublicInfluencerProfileResponse(**values)
 
 
+def row_to_influencer_list_item(row) -> InfluencerListItemResponse:
+    values = dict(row)
+    for field in ("created_at", "updated_at"):
+        if isinstance(values[field], str):
+            values[field] = datetime.fromisoformat(values[field])
+    return InfluencerListItemResponse(**values)
+
+
+@app.get("/api/influencer-profiles", response_model=list[InfluencerListItemResponse])
+def list_influencer_profiles(
+    category_id: int | None = None,
+    q: str | None = None,
+) -> list[InfluencerListItemResponse]:
+    query = """
+        SELECT influencer_profiles.*, categories.name AS category_name,
+            (SELECT MIN(price) FROM ad_services
+             WHERE ad_services.user_id = influencer_profiles.user_id AND ad_services.is_active = 1) AS price_from
+        FROM influencer_profiles
+        JOIN categories ON categories.id = influencer_profiles.category_id
+        WHERE 1 = 1
+    """
+    params: list = []
+    if category_id is not None:
+        query += " AND influencer_profiles.category_id = ?"
+        params.append(category_id)
+    if q:
+        query += """ AND (
+            influencer_profiles.display_name LIKE ? ESCAPE '\\'
+            OR influencer_profiles.username LIKE ? ESCAPE '\\'
+            OR influencer_profiles.location LIKE ? ESCAPE '\\'
+            OR influencer_profiles.bio LIKE ? ESCAPE '\\'
+        )"""
+        like = "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        params.extend([like, like, like, like])
+    query += " ORDER BY influencer_profiles.created_at DESC"
+
+    with connection_context() as connection:
+        rows = connection.execute(query, params).fetchall()
+    return [row_to_influencer_list_item(row) for row in rows]
+
+
 @app.get("/api/influencer-profiles/{username}", response_model=PublicInfluencerProfileResponse)
 def get_public_influencer_profile(username: str) -> PublicInfluencerProfileResponse:
     with connection_context() as connection:
@@ -743,6 +786,43 @@ def create_booking(
             row = connection.execute("SELECT * FROM bookings WHERE id = ?", (cursor.lastrowid,)).fetchone()
     except sqlite3.IntegrityError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+    return row_to_booking(row)
+
+
+@app.patch("/api/bookings/{booking_id}", response_model=BookingResponse)
+def update_booking_status(
+    booking_id: int,
+    payload: BookingStatusUpdate,
+    user: dict = Depends(current_any_user),
+) -> BookingResponse:
+    with connection_context() as connection:
+        row = connection.execute("SELECT * FROM bookings WHERE id = ?", (booking_id,)).fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.BOOKING_NOT_FOUND)
+
+    booking = dict(row)
+    is_influencer = user["id"] == booking["influencer_id"]
+    is_client = user["id"] == booking["client_id"]
+    if not is_influencer and not is_client:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Messages.NO_ACCESS_TO_BOOKING)
+
+    if booking["status"] != BookingStatus.PENDING.value:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=Messages.ONLY_PENDING_BOOKINGS_CAN_BE_UPDATED)
+
+    if is_influencer and payload.status not in (BookingStatus.CONFIRMED, BookingStatus.CANCELLED):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.INFLUENCER_CAN_ONLY_CONFIRM_OR_CANCEL)
+    if is_client and payload.status != BookingStatus.CANCELLED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.CLIENT_CAN_ONLY_CANCEL_BOOKING)
+
+    with connection_context() as connection:
+        connection.execute(
+            "UPDATE bookings SET status = ?, updated_at = ? WHERE id = ?",
+            (payload.status.value, datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), booking_id),
+        )
+        connection.commit()
+        row = connection.execute("SELECT * FROM bookings WHERE id = ?", (booking_id,)).fetchone()
 
     return row_to_booking(row)
 

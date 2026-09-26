@@ -1,3 +1,5 @@
+import { dashboard } from "@/lib/i18n/dashboard";
+import { translateEnum } from "@/lib/i18n/enums";
 import { cn } from "@/lib/utils";
 
 const styles: Record<string, string> = {
@@ -17,7 +19,7 @@ export function StatusBadge({ status }: { status: string }) {
         styles[status] ?? "bg-muted text-muted-foreground border-border",
       )}
     >
-      {status}
+      {translateEnum(dashboard.statusLabels, status)}
     </span>
   );
 }

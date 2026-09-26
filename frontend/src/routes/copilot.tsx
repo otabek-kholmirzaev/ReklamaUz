@@ -5,16 +5,17 @@ import { SiteNav } from "@/components/site-nav";
 import { Button } from "@/components/ui/button";
 import { askCopilot } from "@/lib/copilot";
 import { creators } from "@/lib/data";
+import { common } from "@/lib/i18n/common";
+import { aiCopilot as t } from "@/lib/i18n/aiCopilot";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/copilot")({
   head: () => ({
     meta: [
-      { title: "AI Campaign Copilot — Reklama.uz" },
+      { title: t.pageTitle },
       {
         name: "description",
-        content:
-          "Describe your campaign in plain language and Reklama.uz finds the best matching advertising opportunities.",
+        content: t.pageDescription,
       },
     ],
   }),
@@ -30,13 +31,12 @@ type Message = {
 type Conversation = { id: string; title: string; messages: Message[] };
 
 const STORAGE_KEY = "reklama-copilot-history";
-const WELCOME =
-  "Hi, I’m your campaign copilot. Tell me what you’re promoting, who you want to reach, and your budget. I’ll help shape a clear brief and identify suitable creators.";
+const WELCOME = t.welcomeMessage;
 
 function createConversation(): Conversation {
   return {
     id: crypto.randomUUID(),
-    title: "New campaign",
+    title: t.newCampaign,
     messages: [
       { id: crypto.randomUUID(), role: "assistant", content: WELCOME },
     ],
@@ -117,7 +117,7 @@ function Copilot() {
             ? {
                 ...conversation,
                 title:
-                  conversation.title === "New campaign"
+                  conversation.title === t.newCampaign
                     ? message.slice(0, 42) + (message.length > 42 ? "…" : "")
                     : conversation.title,
                 messages: [...conversation.messages, userMessage],
@@ -157,11 +157,7 @@ function Copilot() {
         ),
       );
     } catch (error) {
-      setChatError(
-        error instanceof Error
-          ? error.message
-          : "Copilot could not respond right now.",
-      );
+      setChatError(error instanceof Error ? error.message : t.couldNotRespond);
       setRetryMessage(message);
     } finally {
       setIsSending(false);
@@ -176,13 +172,13 @@ function Copilot() {
           <aside className="overflow-y-auto border-b border-border bg-surface p-4 lg:border-b-0 lg:border-r">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 font-display font-bold">
-                <Sparkles className="h-4 w-4 text-primary" /> Campaigns
+                <Sparkles className="h-4 w-4 text-primary" /> {t.campaigns}
               </div>
               <Button
                 size="icon"
                 variant="outline"
                 onClick={startConversation}
-                aria-label="New campaign"
+                aria-label={t.newCampaign}
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -192,11 +188,11 @@ function Copilot() {
               variant="secondary"
               onClick={startConversation}
             >
-              <Plus className="mr-2 h-4 w-4" /> New campaign
+              <Plus className="mr-2 h-4 w-4" /> {t.newCampaign}
             </Button>
             <div className="mt-5 space-y-1">
               <p className="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                History
+                {t.history}
               </p>
               {conversations.map((conversation) => (
                 <div
@@ -219,7 +215,7 @@ function Copilot() {
                   <button
                     type="button"
                     onClick={() => deleteConversation(conversation.id)}
-                    aria-label={`Delete "${conversation.title}"`}
+                    aria-label={t.deleteConversation(conversation.title)}
                     className="shrink-0 rounded-lg p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -228,7 +224,7 @@ function Copilot() {
               ))}
             </div>
             <p className="mt-6 px-2 text-xs leading-relaxed text-muted-foreground">
-              Your campaign history is saved privately in this browser.
+              {t.historyPrivacyNote}
             </p>
           </aside>
 
@@ -240,10 +236,10 @@ function Copilot() {
                 </span>
                 <div>
                   <h1 className="font-display text-lg font-bold">
-                    AI Campaign Copilot
+                    {t.heading}
                   </h1>
                   <p className="text-xs text-muted-foreground">
-                    Your creator-marketing planning partner
+                    {t.subheading}
                   </p>
                 </div>
               </div>
@@ -285,11 +281,7 @@ function Copilot() {
               ))}
               {activeConversation?.messages.length === 1 && (
                 <div className="ml-11 flex flex-wrap gap-2">
-                  {[
-                    "Find beauty creators in Tashkent",
-                    "Plan an Instagram launch",
-                    "Reach football fans under $1,500",
-                  ].map((prompt) => (
+                  {t.suggestedPrompts.map((prompt) => (
                     <button
                       key={prompt}
                       type="button"
@@ -307,7 +299,7 @@ function Copilot() {
                     <Sparkles className="h-4 w-4 animate-pulse" />
                   </span>
                   <p className="rounded-2xl bg-surface px-4 py-3 text-sm text-muted-foreground">
-                    Copilot is thinking…
+                    {t.thinking}
                   </p>
                 </div>
               )}
@@ -320,7 +312,7 @@ function Copilot() {
                       variant="outline"
                       onClick={() => void sendMessage(retryMessage, true)}
                     >
-                      Try again
+                      {common.tryAgain}
                     </Button>
                   )}
                 </div>
@@ -339,26 +331,25 @@ function Copilot() {
                     }
                   }}
                   rows={2}
-                  placeholder="Message Copilot about your campaign…"
+                  placeholder={t.inputPlaceholder}
                   className="w-full resize-none bg-transparent px-2 py-1 text-sm outline-none"
                 />
                 <div className="flex items-center justify-between gap-3 px-1 pt-1">
                   <span className="text-xs text-muted-foreground">
-                    Enter to send · Shift + Enter for a new line
+                    {t.sendHint}
                   </span>
                   <Button
                     size="icon"
                     onClick={() => void sendMessage()}
                     disabled={!draft.trim() || isSending}
-                    aria-label="Send message"
+                    aria-label={t.sendAria}
                   >
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
               <p className="mt-3 text-center text-xs text-muted-foreground">
-                Copilot suggests a campaign direction; final availability is
-                confirmed on each creator profile.
+                {t.disclaimer}
               </p>
             </div>
           </section>
@@ -398,8 +389,10 @@ function CreatorRecommendations({ usernames }: { usernames: string[] }) {
               {creator.name}
             </span>
             <span className="block text-xs text-muted-foreground">
-              @{creator.username} · from $
-              {Math.min(...creator.services.map((service) => service.price))}
+              @{creator.username} ·{" "}
+              {t.priceFrom(
+                Math.min(...creator.services.map((service) => service.price)),
+              )}
             </span>
           </span>
         </Link>

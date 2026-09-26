@@ -13,36 +13,23 @@ import { SiteFooter, SiteNav } from "@/components/site-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { becomeCreator as t } from "@/lib/i18n/becomeCreator";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/become-a-creator")({
   head: () => ({
     meta: [
-      { title: "Become a Creator — Reklama.uz" },
+      { title: t.pageTitle },
       {
         name: "description",
-        content:
-          "Apply to join Reklama.uz as a creator and start earning from brand partnerships.",
+        content: t.pageDescription,
       },
     ],
   }),
   component: BecomeACreator,
 });
 
-const CATEGORIES = [
-  "Sports & Football",
-  "Fashion & Beauty",
-  "Lifestyle",
-  "Travel",
-  "Food & Cooking",
-  "Technology & Gaming",
-  "Music & Entertainment",
-  "Education & Business",
-  "Health & Fitness",
-  "Comedy & Humor",
-  "Family & Parenting",
-  "Other",
-];
+const CATEGORIES = t.categories;
 
 const PLATFORMS = [
   { id: "instagram", label: "Instagram", icon: Instagram },
@@ -76,21 +63,18 @@ function BecomeACreator() {
         <section className="border-b border-border bg-foreground text-background">
           <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-20">
             <span className="inline-flex items-center gap-2 rounded-full border border-background/15 bg-background/10 px-3 py-1.5 text-sm font-medium">
-              <Sparkles className="h-4 w-4" /> Creator applications open
+              <Sparkles className="h-4 w-4" /> {t.heroBadge}
             </span>
             <h1 className="mt-5 font-display text-4xl font-extrabold leading-tight sm:text-5xl">
-              Grow your income.<br />Work with top brands.
+              {t.heroTitleLine1}
+              <br />
+              {t.heroTitleLine2}
             </h1>
             <p className="mt-4 max-w-xl text-lg text-background/70">
-              Join the Reklama.uz creator marketplace and connect with businesses
-              looking to reach Uzbekistan's audiences.
+              {t.heroSubtitle}
             </p>
             <ul className="mt-8 space-y-3 text-sm text-background/85">
-              {[
-                "Transparent, upfront pricing — you set your rates",
-                "Brands come to you — no cold outreach needed",
-                "Real-time booking calendar and payout dashboard",
-              ].map((item) => (
+              {t.benefits.map((item) => (
                 <li key={item} className="flex items-center gap-3">
                   <BadgeCheck className="h-4 w-4 shrink-0 text-primary" />
                   {item}
@@ -108,50 +92,46 @@ function BecomeACreator() {
                 <CheckCircle2 className="h-8 w-8 text-success" />
               </span>
               <h2 className="font-display text-2xl font-bold">
-                Application received!
+                {t.successTitle}
               </h2>
               <p className="max-w-sm text-muted-foreground">
-                Thanks for applying. Our team reviews every application and
-                will reach out within 3–5 business days with next steps.
+                {t.successMessage}
               </p>
               <p className="text-sm text-muted-foreground">
-                Questions? Email us at{" "}
+                {t.successQuestionsPrefix}{" "}
                 <span className="font-medium text-foreground">
-                  creators@reklama.uz
-                </span>
+                  {t.successEmail}
+                </span>{" "}
+                {t.successQuestionsSuffix}
               </p>
             </div>
           ) : (
             <>
               <div>
                 <h2 className="font-display text-3xl font-bold">
-                  Apply to join
+                  {t.formSectionTitle}
                 </h2>
                 <p className="mt-2 text-muted-foreground">
-                  Fill in the form below and we'll review your profile. Takes
-                  about 3 minutes.
+                  {t.formSectionSubtitle}
                 </p>
               </div>
 
-              <form
-                className="mt-8 space-y-6"
-                onSubmit={handleSubmit}
-              >
+              <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                 {/* Personal info */}
                 <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-                  <h3 className="font-semibold">Personal information</h3>
+                  <h3 className="font-semibold">{t.personalInfoTitle}</h3>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="full-name">Full name</Label>
+                      <Label htmlFor="full-name">{t.fullNameLabel}</Label>
                       <Input
                         id="full-name"
                         name="fullName"
-                        placeholder="Azizbek Toshmatov"
+                        placeholder={t.fullNamePlaceholder}
                         required
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="email">Email address</Label>
+                      <Label htmlFor="email">{t.emailLabel}</Label>
                       <Input
                         id="email"
                         name="email"
@@ -161,7 +141,7 @@ function BecomeACreator() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="phone">Phone number</Label>
+                      <Label htmlFor="phone">{t.phoneLabel}</Label>
                       <Input
                         id="phone"
                         name="phone"
@@ -170,11 +150,11 @@ function BecomeACreator() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="location">City / Region</Label>
+                      <Label htmlFor="location">{t.locationLabel}</Label>
                       <Input
                         id="location"
                         name="location"
-                        placeholder="Tashkent"
+                        placeholder={t.locationPlaceholder}
                       />
                     </div>
                   </div>
@@ -182,9 +162,9 @@ function BecomeACreator() {
 
                 {/* Platforms */}
                 <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-                  <h3 className="font-semibold">Active platforms</h3>
+                  <h3 className="font-semibold">{t.platformsTitle}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Select all that apply.
+                    {t.platformsSubtitle}
                   </p>
                   <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {PLATFORMS.map(({ id, label, icon: Icon }) => (
@@ -208,34 +188,66 @@ function BecomeACreator() {
                   <div className="mt-4 space-y-4">
                     {platforms.includes("instagram") && (
                       <div className="space-y-1.5">
-                        <Label htmlFor="instagram-handle">Instagram handle</Label>
+                        <Label htmlFor="instagram-handle">
+                          {t.instagramHandleLabel}
+                        </Label>
                         <div className="relative">
-                          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
-                          <Input id="instagram-handle" name="instagramHandle" className="pl-7" placeholder="yourusername" />
+                          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                            @
+                          </span>
+                          <Input
+                            id="instagram-handle"
+                            name="instagramHandle"
+                            className="pl-7"
+                            placeholder={t.handlePlaceholder}
+                          />
                         </div>
                       </div>
                     )}
                     {platforms.includes("tiktok") && (
                       <div className="space-y-1.5">
-                        <Label htmlFor="tiktok-handle">TikTok handle</Label>
+                        <Label htmlFor="tiktok-handle">
+                          {t.tiktokHandleLabel}
+                        </Label>
                         <div className="relative">
-                          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
-                          <Input id="tiktok-handle" name="tiktokHandle" className="pl-7" placeholder="yourusername" />
+                          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                            @
+                          </span>
+                          <Input
+                            id="tiktok-handle"
+                            name="tiktokHandle"
+                            className="pl-7"
+                            placeholder={t.handlePlaceholder}
+                          />
                         </div>
                       </div>
                     )}
                     {platforms.includes("youtube") && (
                       <div className="space-y-1.5">
-                        <Label htmlFor="youtube-url">YouTube channel URL</Label>
-                        <Input id="youtube-url" name="youtubeUrl" type="url" placeholder="https://youtube.com/@..." />
+                        <Label htmlFor="youtube-url">{t.youtubeUrlLabel}</Label>
+                        <Input
+                          id="youtube-url"
+                          name="youtubeUrl"
+                          type="url"
+                          placeholder="https://youtube.com/@..."
+                        />
                       </div>
                     )}
                     {platforms.includes("telegram") && (
                       <div className="space-y-1.5">
-                        <Label htmlFor="telegram-handle">Telegram channel / username</Label>
+                        <Label htmlFor="telegram-handle">
+                          {t.telegramHandleLabel}
+                        </Label>
                         <div className="relative">
-                          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">@</span>
-                          <Input id="telegram-handle" name="telegramHandle" className="pl-7" placeholder="yourchannel" />
+                          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                            @
+                          </span>
+                          <Input
+                            id="telegram-handle"
+                            name="telegramHandle"
+                            className="pl-7"
+                            placeholder={t.telegramPlaceholder}
+                          />
                         </div>
                       </div>
                     )}
@@ -244,10 +256,10 @@ function BecomeACreator() {
 
                 {/* Audience */}
                 <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
-                  <h3 className="font-semibold">Audience & content</h3>
+                  <h3 className="font-semibold">{t.audienceTitle}</h3>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
-                      <Label htmlFor="category">Primary category</Label>
+                      <Label htmlFor="category">{t.categoryLabel}</Label>
                       <select
                         id="category"
                         value={category}
@@ -255,14 +267,18 @@ function BecomeACreator() {
                         required
                         className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                       >
-                        <option value="" disabled>Select a category…</option>
+                        <option value="" disabled>
+                          {t.categoryPlaceholder}
+                        </option>
                         {CATEGORIES.map((c) => (
-                          <option key={c} value={c}>{c}</option>
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
                         ))}
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="followers">Total followers (approx.)</Label>
+                      <Label htmlFor="followers">{t.followersLabel}</Label>
                       <select
                         id="followers"
                         value={followersRange}
@@ -270,21 +286,20 @@ function BecomeACreator() {
                         required
                         className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                       >
-                        <option value="" disabled>Select a range…</option>
-                        <option>Under 10K</option>
-                        <option>10K – 50K</option>
-                        <option>50K – 100K</option>
-                        <option>100K – 500K</option>
-                        <option>500K – 1M</option>
-                        <option>Over 1M</option>
+                        <option value="" disabled>
+                          {t.followersPlaceholder}
+                        </option>
+                        {t.followersRanges.map((range) => (
+                          <option key={range}>{range}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="about">Tell us about your content</Label>
+                      <Label htmlFor="about">{t.aboutLabel}</Label>
                       <textarea
                         id="about"
                         name="about"
-                        placeholder="Describe your content style, audience, and why you'd be a great fit for brand partnerships on Reklama.uz…"
+                        placeholder={t.aboutPlaceholder}
                         rows={4}
                         className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                       />
@@ -298,11 +313,11 @@ function BecomeACreator() {
                   className="w-full"
                   disabled={platforms.length === 0}
                 >
-                  Submit application
+                  {t.submit}
                 </Button>
                 {platforms.length === 0 && (
                   <p className="text-center text-xs text-muted-foreground">
-                    Select at least one platform to continue.
+                    {t.selectPlatformHint}
                   </p>
                 )}
               </form>

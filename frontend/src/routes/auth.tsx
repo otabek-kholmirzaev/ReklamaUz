@@ -14,7 +14,17 @@ import { Logo } from "@/components/site-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { apiBaseUrl, clearSession, getSession, SESSION_CHANGED_EVENT, setSession, signin, signup, verifyEmail } from "@/lib/auth";
+import {
+  apiBaseUrl,
+  clearSession,
+  getSession,
+  SESSION_CHANGED_EVENT,
+  setSession,
+  signin,
+  signup,
+  verifyEmail,
+} from "@/lib/auth";
+import { auth as t } from "@/lib/i18n/auth";
 import { cn } from "@/lib/utils";
 
 type AuthMode = "login" | "signup";
@@ -35,15 +45,16 @@ export const Route = createFileRoute("/auth")({
     if (typeof search["uid"] === "string") result.uid = search["uid"];
     if (typeof search["email"] === "string") result.email = search["email"];
     if (typeof search["role"] === "string") result.role = search["role"];
-    if (typeof search["google_error"] === "string") result.google_error = search["google_error"];
+    if (typeof search["google_error"] === "string")
+      result.google_error = search["google_error"];
     return result;
   },
   head: () => ({
     meta: [
-      { title: "Log in — Reklama.uz" },
+      { title: t.pageTitle },
       {
         name: "description",
-        content: "Log in or create your Reklama.uz account to book creator advertising.",
+        content: t.pageDescription,
       },
     ],
   }),
@@ -74,7 +85,14 @@ function GoogleMark() {
 }
 
 function Auth() {
-  const { mode: routeMode, token, uid, email: googleEmail, role: googleRole, google_error } = Route.useSearch();
+  const {
+    mode: routeMode,
+    token,
+    uid,
+    email: googleEmail,
+    role: googleRole,
+    google_error,
+  } = Route.useSearch();
   const navigate = useNavigate({ from: "/auth" });
   const [mode, setMode] = useState<AuthMode>(routeMode);
   const [step, setStep] = useState<AuthStep>("form");
@@ -89,13 +107,17 @@ function Auth() {
     if (token && uid && googleEmail && googleRole) {
       setSession({
         accessToken: token,
-        user: { id: parseInt(uid), email: googleEmail, role: googleRole as "CLIENT" | "INFLUENCER" },
+        user: {
+          id: parseInt(uid),
+          email: googleEmail,
+          role: googleRole as "CLIENT" | "INFLUENCER",
+        },
       });
       void navigate({ to: "/" });
       return;
     }
     if (google_error) {
-      setError("Google sign-in failed. Please try again.");
+      setError(t.googleSignInFailed);
     }
   }, [token, uid, googleEmail, googleRole, google_error, navigate]);
 
@@ -144,7 +166,7 @@ function Auth() {
         void navigate({ to: "/" });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : t.somethingWentWrong);
     } finally {
       setIsLoading(false);
     }
@@ -161,7 +183,7 @@ function Auth() {
       setSession(session);
       void navigate({ to: "/" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : t.somethingWentWrong);
     } finally {
       setIsLoading(false);
     }
@@ -179,20 +201,16 @@ function Auth() {
           </div>
           <div className="relative my-auto max-w-md">
             <span className="inline-flex items-center gap-2 rounded-full border border-background/15 bg-background/10 px-3 py-1.5 text-sm font-medium">
-              <Sparkles className="h-4 w-4" /> Built for better campaigns
+              <Sparkles className="h-4 w-4" /> {t.heroBadge}
             </span>
             <h1 className="mt-6 font-display text-4xl font-extrabold leading-tight">
-              Find the right creator. Book with confidence.
+              {t.heroHeading}
             </h1>
             <p className="mt-4 text-base leading-relaxed text-background/70">
-              Compare clear packages, real availability and audience data in one place.
+              {t.heroBody}
             </p>
             <ul className="mt-9 space-y-4 text-sm text-background/85">
-              {[
-                "Verified creators and transparent pricing",
-                "Real-time service capacity and schedules",
-                "One place for every campaign request",
-              ].map((item) => (
+              {t.heroBullets.map((item) => (
                 <li key={item} className="flex items-center gap-3">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-background/10">
                     <Check className="h-3.5 w-3.5" />
@@ -202,7 +220,9 @@ function Auth() {
               ))}
             </ul>
           </div>
-          <p className="relative text-xs text-background/50">© 2026 Reklama.uz</p>
+          <p className="relative text-xs text-background/50">
+            {t.copyrightNotice}
+          </p>
         </section>
 
         {/* Right panel — form */}
@@ -219,20 +239,24 @@ function Auth() {
                   onClick={() => updateMode("login")}
                   className={cn(
                     "rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-                    !isSignup ? "bg-card shadow-soft" : "text-muted-foreground hover:text-foreground",
+                    !isSignup
+                      ? "bg-card shadow-soft"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  Log in
+                  {t.logIn}
                 </button>
                 <button
                   type="button"
                   onClick={() => updateMode("signup")}
                   className={cn(
                     "rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-                    isSignup ? "bg-card shadow-soft" : "text-muted-foreground hover:text-foreground",
+                    isSignup
+                      ? "bg-card shadow-soft"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  Create account
+                  {t.createAccount}
                 </button>
               </div>
             </div>
@@ -240,17 +264,24 @@ function Auth() {
             {step === "verify" ? (
               <>
                 <div className="mt-8">
-                  <h2 className="font-display text-3xl font-extrabold">Check your email</h2>
+                  <h2 className="font-display text-3xl font-extrabold">
+                    {t.checkYourEmail}
+                  </h2>
                   <p className="mt-2 text-muted-foreground">
-                    We sent a 6-digit code to{" "}
-                    <span className="font-medium text-foreground">{pendingEmail}</span>. Enter it
-                    below to activate your account.
+                    {t.codeSentPrefix}{" "}
+                    <span className="font-medium text-foreground">
+                      {pendingEmail}
+                    </span>
+                    . {t.codeSentSuffix}
                   </p>
                 </div>
 
-                <form className="mt-8 space-y-4" onSubmit={(e) => void handleVerify(e)}>
+                <form
+                  className="mt-8 space-y-4"
+                  onSubmit={(e) => void handleVerify(e)}
+                >
                   <div className="space-y-1.5">
-                    <Label htmlFor="code">Verification code</Label>
+                    <Label htmlFor="code">{t.verificationCode}</Label>
                     <Input
                       id="code"
                       name="code"
@@ -273,19 +304,27 @@ function Auth() {
                     </p>
                   )}
 
-                  <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Verifying…" : "Verify and create account"}
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? t.verifying : t.verifyAndCreateAccount}
                   </Button>
                 </form>
 
                 <p className="mt-5 text-center text-sm text-muted-foreground">
-                  Wrong email?{" "}
+                  {t.wrongEmail}{" "}
                   <button
                     type="button"
-                    onClick={() => { setStep("form"); setError(null); }}
+                    onClick={() => {
+                      setStep("form");
+                      setError(null);
+                    }}
                     className="font-semibold text-accent-foreground hover:underline"
                   >
-                    Go back
+                    {t.goBack}
                   </button>
                 </p>
               </>
@@ -293,12 +332,10 @@ function Auth() {
               <>
                 <div className="mt-8">
                   <h2 className="font-display text-3xl font-extrabold">
-                    {isSignup ? "Create your account" : "Welcome back"}
+                    {isSignup ? t.createYourAccount : t.welcomeBack}
                   </h2>
                   <p className="mt-2 text-muted-foreground">
-                    {isSignup
-                      ? "Start booking creator advertising in a few minutes."
-                      : "Log in to manage your campaigns and bookings."}
+                    {isSignup ? t.signupSubtitle : t.loginSubtitle}
                   </p>
                 </div>
 
@@ -311,23 +348,34 @@ function Auth() {
                   }}
                 >
                   <GoogleMark />
-                  <span className="ml-2">Continue with Google</span>
+                  <span className="ml-2">{t.continueWithGoogle}</span>
                 </Button>
 
                 <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground before:h-px before:flex-1 before:bg-border after:h-px after:flex-1 after:bg-border">
-                  or continue with email
+                  {t.orContinueWithEmail}
                 </div>
 
-                <form className="space-y-4" onSubmit={(e) => void handleSubmit(e)}>
+                <form
+                  className="space-y-4"
+                  onSubmit={(e) => void handleSubmit(e)}
+                >
                   {/* Role selector — signup only */}
                   {isSignup && (
                     <div className="space-y-2">
-                      <Label>I am a…</Label>
+                      <Label>{t.iAmA}</Label>
                       <div className="grid grid-cols-2 gap-2">
                         {(
                           [
-                            { value: "CLIENT", label: "Business / Brand", icon: Store },
-                            { value: "INFLUENCER", label: "Creator / Influencer", icon: UserRound },
+                            {
+                              value: "CLIENT",
+                              label: t.businessBrand,
+                              icon: Store,
+                            },
+                            {
+                              value: "INFLUENCER",
+                              label: t.creatorInfluencer,
+                              icon: UserRound,
+                            },
                           ] as const
                         ).map(({ value, label, icon: Icon }) => (
                           <button
@@ -350,7 +398,7 @@ function Auth() {
                   )}
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="email">Email address</Label>
+                    <Label htmlFor="email">{t.emailAddress}</Label>
                     <div className="relative">
                       <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
@@ -358,7 +406,7 @@ function Auth() {
                         name="email"
                         type="email"
                         autoComplete="email"
-                        placeholder="you@company.com"
+                        placeholder={t.emailPlaceholder}
                         className="pl-10"
                         required
                         disabled={isLoading}
@@ -368,13 +416,13 @@ function Auth() {
 
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password">{t.password}</Label>
                       {!isSignup && (
                         <button
                           type="button"
                           className="text-xs font-medium text-accent-foreground hover:underline"
                         >
-                          Forgot password?
+                          {t.forgotPassword}
                         </button>
                       )}
                     </div>
@@ -384,8 +432,10 @@ function Auth() {
                         id="password"
                         name="password"
                         type={showPassword ? "text" : "password"}
-                        autoComplete={isSignup ? "new-password" : "current-password"}
-                        placeholder="At least 8 characters"
+                        autoComplete={
+                          isSignup ? "new-password" : "current-password"
+                        }
+                        placeholder={t.passwordPlaceholder}
                         className="pl-10 pr-10"
                         minLength={8}
                         required
@@ -395,16 +445,22 @@ function Auth() {
                         type="button"
                         onClick={() => setShowPassword((v) => !v)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={
+                          showPassword ? t.hidePassword : t.showPassword
+                        }
                       >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
                       </button>
                     </div>
                   </div>
 
                   {isSignup && (
                     <p className="text-xs leading-relaxed text-muted-foreground">
-                      By creating an account, you agree to the Terms of Service and Privacy Policy.
+                      {t.termsNotice}
                     </p>
                   )}
 
@@ -414,32 +470,40 @@ function Auth() {
                     </p>
                   )}
 
-                  <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full"
+                    disabled={isLoading}
+                  >
                     {isLoading
                       ? isSignup
-                        ? "Sending code…"
-                        : "Logging in…"
+                        ? t.sendingCode
+                        : t.loggingIn
                       : isSignup
-                        ? "Continue"
-                        : "Log in"}
+                        ? t.continueBtn
+                        : t.logIn}
                   </Button>
                 </form>
 
                 <p className="mt-7 text-center text-sm text-muted-foreground">
-                  {isSignup ? "Already have an account?" : "New to Reklama.uz?"}{" "}
+                  {isSignup ? t.alreadyHaveAccount : t.newToReklama}{" "}
                   <button
                     type="button"
                     onClick={() => updateMode(isSignup ? "login" : "signup")}
                     className="font-semibold text-accent-foreground hover:underline"
                   >
-                    {isSignup ? "Log in" : "Create an account"}
+                    {isSignup ? t.logIn : t.createAccount}
                   </button>
                 </p>
               </>
             )}
           </div>
-          <Link to="/" className="text-center text-sm text-muted-foreground hover:text-foreground">
-            ← Back to homepage
+          <Link
+            to="/"
+            className="text-center text-sm text-muted-foreground hover:text-foreground"
+          >
+            {t.backToHomepage}
           </Link>
         </section>
       </div>

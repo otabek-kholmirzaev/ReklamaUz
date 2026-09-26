@@ -1,4 +1,5 @@
 import { creators } from "@/lib/data";
+import { aiCopilot } from "@/lib/i18n/aiCopilot";
 
 export type ChatHistoryMessage = {
   role: "assistant" | "user";
@@ -12,7 +13,9 @@ export type CopilotResult = {
   recommendations: string[];
 };
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
+const apiBaseUrl = (
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001"
+).replace(/\/$/, "");
 
 const creatorCatalog = creators.map((creator) => ({
   username: creator.username,
@@ -24,16 +27,28 @@ const creatorCatalog = creators.map((creator) => ({
   minimumPrice: Math.min(...creator.services.map((service) => service.price)),
 }));
 
-export async function askCopilot(message: string, history: ChatHistoryMessage[]): Promise<CopilotResult> {
+export async function askCopilot(
+  message: string,
+  history: ChatHistoryMessage[],
+): Promise<CopilotResult> {
   const response = await fetch(`${apiBaseUrl}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, history: history.slice(-20), creators: creatorCatalog }),
+    body: JSON.stringify({
+      message,
+      history: history.slice(-20),
+      creators: creatorCatalog,
+    }),
   });
-  const payload = (await response.json().catch(() => null)) as CopilotResult | { error?: string } | null;
+  const payload = (await response.json().catch(() => null)) as
+    CopilotResult | { error?: string } | null;
 
   if (!response.ok || !payload || !("message" in payload)) {
-    throw new Error(payload && "error" in payload && payload.error ? payload.error : "Copilot could not respond right now.");
+    throw new Error(
+      payload && "error" in payload && payload.error
+        ? payload.error
+        : aiCopilot.couldNotRespond,
+    );
   }
 
   return payload;

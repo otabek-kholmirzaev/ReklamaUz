@@ -84,6 +84,10 @@ export type PublicInfluencerProfileResponse = InfluencerProfileResponse & {
   category_name: string;
 };
 
+export type InfluencerListItemResponse = PublicInfluencerProfileResponse & {
+  price_from: number | null;
+};
+
 export async function apiFetch<T>(
   path: string,
   options?: RequestInit,

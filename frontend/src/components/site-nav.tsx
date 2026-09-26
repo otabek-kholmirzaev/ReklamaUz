@@ -29,10 +29,11 @@ import {
   saveNotifications,
 } from "@/lib/notifications";
 import { getWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
+import { nav } from "@/lib/i18n/nav";
 
 const links = [
-  { to: "/", label: "Homepage" },
-  { to: "/discover", label: "Creators" },
+  { to: "/", label: nav.homepage },
+  { to: "/discover", label: nav.creators },
 ] as const;
 
 export function Logo() {
@@ -73,7 +74,7 @@ export function SiteNav() {
         <div className="flex items-center gap-2 md:hidden">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Menu">
+              <Button variant="ghost" size="icon" aria-label={nav.menu}>
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
@@ -94,28 +95,28 @@ export function SiteNav() {
                   onClick={() => setOpen(false)}
                   className="rounded-lg px-3 py-2 text-sm font-medium text-accent-foreground hover:bg-muted"
                 >
-                  AI Campaign Copilot
+                  {nav.aiCampaignCopilot}
                 </Link>
                 <Link
                   to="/dashboard"
                   onClick={() => setOpen(false)}
                   className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
                 >
-                  Dashboard
+                  {nav.dashboard}
                 </Link>
                 <Link
                   to="/studio"
                   onClick={() => setOpen(false)}
                   className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
                 >
-                  Creator Studio
+                  {nav.creatorStudio}
                 </Link>
                 <Link
                   to="/wishlist"
                   onClick={() => setOpen(false)}
                   className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
                 >
-                  Wishlist
+                  {nav.wishlist}
                 </Link>
                 {session ? (
                   <>
@@ -128,7 +129,7 @@ export function SiteNav() {
                         onClick={handleMobileLogout}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-destructive hover:bg-muted"
                       >
-                        <LogOut className="h-4 w-4" /> Log out
+                        <LogOut className="h-4 w-4" /> {nav.logOut}
                       </button>
                     </div>
                   </>
@@ -140,7 +141,7 @@ export function SiteNav() {
                       onClick={() => setOpen(false)}
                       className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
                     >
-                      Log in
+                      {nav.logIn}
                     </Link>
                     <Link
                       to="/auth"
@@ -148,7 +149,7 @@ export function SiteNav() {
                       onClick={() => setOpen(false)}
                       className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
                     >
-                      Sign up
+                      {nav.signUp}
                     </Link>
                   </div>
                 )}
@@ -174,7 +175,7 @@ export function SiteNav() {
             className="ml-1 rounded-lg px-3 py-2 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent"
           >
             <span className="inline-flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5" /> AI Copilot
+              <Sparkles className="h-3.5 w-3.5" /> {nav.aiCopilot}
             </span>
           </Link>
         </nav>
@@ -215,9 +216,9 @@ function AuthArea() {
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Log out"
+          aria-label={nav.logOut}
           onClick={handleLogout}
-          title="Log out"
+          title={nav.logOut}
         >
           <LogOut className="h-4 w-4" />
         </Button>
@@ -228,16 +229,16 @@ function AuthArea() {
   return (
     <>
       <Button variant="ghost" className="hidden lg:inline-flex" asChild>
-        <Link to="/studio">Become a Creator</Link>
+        <Link to="/studio">{nav.becomeCreator}</Link>
       </Button>
       <Button variant="outline" className="hidden sm:inline-flex" asChild>
         <Link to="/auth" search={{ mode: "login" }}>
-          Log in
+          {nav.logIn}
         </Link>
       </Button>
       <Button asChild>
         <Link to="/auth" search={{ mode: "signup" }}>
-          Sign up
+          {nav.signUp}
         </Link>
       </Button>
     </>
@@ -258,7 +259,7 @@ function WishlistButton() {
     <Button
       variant="ghost"
       size="icon"
-      aria-label="Wishlist"
+      aria-label={nav.wishlist}
       className="relative hidden sm:inline-flex"
       asChild
     >
@@ -275,7 +276,7 @@ function WishlistButton() {
 }
 
 function formatNotifDate(iso: string) {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("uz-Latn", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -310,7 +311,7 @@ function NotificationBell() {
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Notifications"
+          aria-label={nav.notifications}
           className="relative hidden sm:inline-flex"
         >
           {unreadCount > 0 ? (
@@ -327,18 +328,16 @@ function NotificationBell() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
         <div className="border-b border-border px-4 py-3">
-          <p className="font-display font-semibold">Notifications</p>
+          <p className="font-display font-semibold">{nav.notifications}</p>
           <p className="text-xs text-muted-foreground">
-            Upcoming booking reminders
+            {nav.notificationsSubtitle}
           </p>
         </div>
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-4 py-8 text-center text-sm text-muted-foreground">
             <Bell className="h-7 w-7 opacity-30" />
-            <p>No notifications yet.</p>
-            <p className="text-xs">
-              Reminders appear here after you book an ad.
-            </p>
+            <p>{nav.noNotificationsYet}</p>
+            <p className="text-xs">{nav.notificationsEmptyHint}</p>
           </div>
         ) : (
           <ul className="divide-y divide-border">
@@ -350,20 +349,20 @@ function NotificationBell() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold leading-tight">
                     {n.reminderDaysBefore === 3
-                      ? "3-day reminder"
-                      : "1-day reminder"}
+                      ? nav.threeDayReminder
+                      : nav.oneDayReminder}
                   </p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     @{n.creatorUsername} · {n.serviceName}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Ad on{" "}
+                    {nav.adOn}{" "}
                     <span className="font-medium text-foreground">
                       {formatNotifDate(n.bookingDate)}
                     </span>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Reminder fires:{" "}
+                    {nav.reminderFires}:{" "}
                     <span className="font-medium text-foreground">
                       {formatNotifDate(n.scheduledFor)}
                     </span>
@@ -384,20 +383,20 @@ export function SiteFooter() {
       <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-10 sm:px-6 md:flex-row md:items-center md:justify-between">
         <div className="space-y-2">
           <Logo />
-          <p className="text-sm text-muted-foreground">Find. Book. Promote.</p>
+          <p className="text-sm text-muted-foreground">{nav.findBookPromote}</p>
         </div>
         <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-muted-foreground">
           <Link to="/discover" className="hover:text-foreground">
-            Discover creators
+            {nav.discoverCreators}
           </Link>
           <Link to="/copilot" className="hover:text-foreground">
-            AI Campaign Copilot
+            {nav.aiCampaignCopilot}
           </Link>
           <Link to="/how-it-works" className="hover:text-foreground">
-            How it works
+            {nav.howItWorks}
           </Link>
           <Link to="/studio" className="hover:text-foreground">
-            For creators
+            {nav.forCreators}
           </Link>
         </div>
       </div>

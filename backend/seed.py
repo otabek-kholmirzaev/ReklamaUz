@@ -36,6 +36,7 @@ INFLUENCERS = [
             ("EVENT_APPEARANCE", "Stadium meet & greet", 2500),
             ("INSTAGRAM_STORY", "Sponsor story shoutout", 400),
             ("INSTAGRAM_POST", "Feed post", 700),
+            ("INSTAGRAM_REEL", "Matchday reel", 900),
         ],
     },
     {
@@ -54,6 +55,7 @@ INFLUENCERS = [
         "services": [
             ("INSTAGRAM_STORY", "Workout story feature", 150),
             ("INSTAGRAM_REEL", "Fitness reel", 450),
+            ("INSTAGRAM_POST", "Workout feed post", 420),
             ("PERSONAL_SHOUTOUT", "Personal shoutout video", 80),
         ],
     },

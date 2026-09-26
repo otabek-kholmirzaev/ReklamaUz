@@ -15,6 +15,11 @@ export type Service = {
   bookedDates?: string[];
 };
 
+// NOTE on localization: `category`, `tags`, and `platforms` values below are
+// kept in English on purpose — they double as filter/search keys (see
+// discover.tsx) and mirror the backend's category names (see
+// src/lib/i18n/enums.ts). Translate them for display with
+// `translateEnum(CATEGORY_LABELS, value)` at the render site, never here.
 export type Creator = {
   username: string;
   name: string;
@@ -53,8 +58,8 @@ export const creators: Creator[] = [
     verified: true,
     category: "Football",
     tags: ["Football", "Lifestyle"],
-    location: "Tashkent, Uzbekistan",
-    bio: "Professional footballer sharing matchday life, training routines and sportswear I actually use.",
+    location: "Toshkent, O‘zbekiston",
+    bio: "Professional futbolchi — o‘yin kuni hayoti, mashg‘ulot dasturlari va o‘zim foydalanadigan sport kiyimlari haqida ulashaman.",
     platforms: ["Instagram", "Telegram", "YouTube"],
     followers: "1.2M",
     followersNum: 1200000,
@@ -65,13 +70,13 @@ export const creators: Creator[] = [
     reviews: 128,
     audience: {
       age: "18–34",
-      gender: "71% male",
-      country: "Uzbekistan",
+      gender: "71% erkak",
+      country: "O‘zbekiston",
       split: [
-        { label: "Uzbekistan", value: 82 },
-        { label: "Kazakhstan", value: 9 },
-        { label: "Russia", value: 5 },
-        { label: "Other", value: 4 },
+        { label: "O‘zbekiston", value: 82 },
+        { label: "Qozog‘iston", value: 9 },
+        { label: "Rossiya", value: 5 },
+        { label: "Boshqa", value: 4 },
       ],
     },
     services: [
@@ -81,26 +86,26 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 400,
         bullets: [
-          "1 Instagram Story",
-          "Up to 24 hours",
-          "1 product mention",
-          "Client provides creative",
+          "1 ta Instagram Story",
+          "24 soatgacha",
+          "1 ta mahsulot tilga olinadi",
+          "Kreativ material mijoz tomonidan taqdim etiladi",
         ],
-        limit: { used: 12, max: 15, period: "this month" },
+        limit: { used: 12, max: 15, period: "shu oy" },
         bookedDates: ["2026-10-03", "2026-10-12", "2026-10-20"],
       },
       {
         id: "ig-post",
-        name: "Instagram Post",
+        name: "Instagram post",
         platform: "Instagram",
         price: 700,
         bullets: [
-          "Feed post",
-          "Caption included",
-          "Product tag",
-          "Pinned for 24 hours",
+          "Lentaga post",
+          "Sarlavha kiritilgan",
+          "Mahsulot tegi",
+          "24 soat qadalgan holatda",
         ],
-        limit: { used: 3, max: 8, period: "this month" },
+        limit: { used: 3, max: 8, period: "shu oy" },
         bookedDates: ["2026-10-09", "2026-10-18"],
       },
       {
@@ -109,32 +114,32 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 900,
         bullets: [
-          "30–60 second video",
-          "Script support",
-          "Product integration",
+          "30–60 soniyalik video",
+          "Ssenariy bo‘yicha yordam",
+          "Mahsulot integratsiyasi",
         ],
-        limit: { used: 2, max: 6, period: "this month" },
+        limit: { used: 2, max: 6, period: "shu oy" },
         bookedDates: ["2026-10-04", "2026-10-23"],
       },
       {
         id: "tg-post",
-        name: "Telegram Post",
+        name: "Telegram post",
         platform: "Telegram",
         price: 300,
-        bullets: ["Sponsored post", "Up to 24 hours pinned"],
-        limit: { used: 5, max: 10, period: "this month" },
+        bullets: ["Sponsorlik posti", "24 soatgacha qadalgan"],
+        limit: { used: 5, max: 10, period: "shu oy" },
         bookedDates: ["2026-10-05", "2026-10-19"],
       },
     ],
     matchScore: 96,
     matchReasons: [
-      "Strong sports audience",
-      "82% audience in Uzbekistan",
-      "Fits your budget",
-      "Available during requested dates",
-      "High engagement among your target demographic",
+      "Sport auditoriyasi kuchli",
+      "Auditoriyaning 82% O‘zbekistonda",
+      "Byudjetingizga mos keladi",
+      "So‘ralgan sanalarda band emas",
+      "Maqsadli auditoriyangiz orasida yuqori faollik",
     ],
-    availability: "Available from Oct 3",
+    availability: "3-oktabrdan band qilish mumkin",
     unavailableDates: [
       "2026-10-06",
       "2026-10-07",
@@ -150,8 +155,8 @@ export const creators: Creator[] = [
     verified: true,
     category: "Fitness",
     tags: ["Fitness", "Wellness"],
-    location: "Tashkent, Uzbekistan",
-    bio: "Coach and fitness creator. Programs, gym culture and honest gear reviews.",
+    location: "Toshkent, O‘zbekiston",
+    bio: "Murabbiy va fitnes-kreator. Dasturlar, sport zali madaniyati va halol jihoz sharhlari.",
     platforms: ["Instagram", "TikTok"],
     followers: "620K",
     followersNum: 620000,
@@ -162,13 +167,13 @@ export const creators: Creator[] = [
     reviews: 86,
     audience: {
       age: "18–34",
-      gender: "64% female",
-      country: "Uzbekistan",
+      gender: "64% ayol",
+      country: "O‘zbekiston",
       split: [
-        { label: "Uzbekistan", value: 74 },
-        { label: "Kazakhstan", value: 12 },
-        { label: "Russia", value: 8 },
-        { label: "Other", value: 6 },
+        { label: "O‘zbekiston", value: 74 },
+        { label: "Qozog‘iston", value: 12 },
+        { label: "Rossiya", value: 8 },
+        { label: "Boshqa", value: 6 },
       ],
     },
     services: [
@@ -177,8 +182,12 @@ export const creators: Creator[] = [
         name: "Instagram Story",
         platform: "Instagram",
         price: 250,
-        bullets: ["2 Instagram Stories", "Swipe-up link", "1 product mention"],
-        limit: { used: 5, max: 12, period: "this month" },
+        bullets: [
+          "2 ta Instagram Story",
+          "Yuqoriga surish havolasi",
+          "1 ta mahsulot tilga olinadi",
+        ],
+        limit: { used: 5, max: 12, period: "shu oy" },
       },
       {
         id: "ig-reel",
@@ -186,21 +195,33 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 500,
         bullets: [
-          "Up to 45 second video",
-          "Workout integration",
-          "Caption included",
+          "45 soniyagacha video",
+          "Mashg‘ulot integratsiyasi",
+          "Sarlavha kiritilgan",
         ],
-        limit: { used: 4, max: 6, period: "this month" },
+        limit: { used: 4, max: 6, period: "shu oy" },
+      },
+      {
+        id: "ig-post",
+        name: "Instagram post",
+        platform: "Instagram",
+        price: 420,
+        bullets: [
+          "Muharrirlik lentasi posti",
+          "Jihoz sharhi bilan",
+          "Sarlavha kiritilgan",
+        ],
+        limit: { used: 3, max: 8, period: "shu oy" },
       },
     ],
     matchScore: 91,
     matchReasons: [
-      "Audience actively buys sportswear",
-      "Highest engagement rate in your category",
-      "Well under your budget",
-      "Two open slots in early October",
+      "Auditoriya sport kiyimlarini faol xarid qiladi",
+      "Kategoriyangizdagi eng yuqori faollik darajasi",
+      "Byudjetingizdan ancha past",
+      "Oktabr boshida ikkita bo‘sh joy",
     ],
-    availability: "Available from Oct 1",
+    availability: "1-oktabrdan band qilish mumkin",
     unavailableDates: ["2026-10-02", "2026-10-09", "2026-10-16"],
   },
   {
@@ -210,8 +231,8 @@ export const creators: Creator[] = [
     verified: true,
     category: "Technology",
     tags: ["Technology", "Business"],
-    location: "Tashkent, Uzbekistan",
-    bio: "Gadget reviews, startup takes and tech explainers for a young professional audience.",
+    location: "Toshkent, O‘zbekiston",
+    bio: "Gadjet sharhlari, startap fikrlari va yosh professional auditoriya uchun texnologik tushuntirishlar.",
     platforms: ["Telegram", "YouTube", "Instagram"],
     followers: "410K",
     followersNum: 410000,
@@ -222,40 +243,52 @@ export const creators: Creator[] = [
     reviews: 54,
     audience: {
       age: "22–40",
-      gender: "68% male",
-      country: "Uzbekistan",
+      gender: "68% erkak",
+      country: "O‘zbekiston",
       split: [
-        { label: "Uzbekistan", value: 69 },
-        { label: "Kazakhstan", value: 14 },
-        { label: "Russia", value: 10 },
-        { label: "Other", value: 7 },
+        { label: "O‘zbekiston", value: 69 },
+        { label: "Qozog‘iston", value: 14 },
+        { label: "Rossiya", value: 10 },
+        { label: "Boshqa", value: 7 },
       ],
     },
     services: [
       {
         id: "tg-post",
-        name: "Telegram Post",
+        name: "Telegram post",
         platform: "Telegram",
         price: 200,
-        bullets: ["Sponsored post", "Pinned 12 hours", "Link included"],
-        limit: { used: 6, max: 10, period: "this month" },
+        bullets: ["Sponsorlik posti", "12 soat qadalgan", "Havola kiritilgan"],
+        limit: { used: 6, max: 10, period: "shu oy" },
       },
       {
         id: "ig-story",
         name: "Instagram Story",
         platform: "Instagram",
         price: 450,
-        bullets: ["2 Stories", "Product demo", "Link sticker"],
-        limit: { used: 7, max: 10, period: "this month" },
+        bullets: ["2 ta Story", "Mahsulot demosi", "Havola stikeri"],
+        limit: { used: 7, max: 10, period: "shu oy" },
+      },
+      {
+        id: "ig-post",
+        name: "Instagram post",
+        platform: "Instagram",
+        price: 600,
+        bullets: [
+          "Batafsil gadjet sharhi posti",
+          "Sotib olish havolasi",
+          "Sarlavha kiritilgan",
+        ],
+        limit: { used: 2, max: 6, period: "shu oy" },
       },
     ],
     matchScore: 84,
     matchReasons: [
-      "Premium professional audience",
-      "Strong Telegram reach",
-      "Fast turnaround",
+      "Premium professional auditoriya",
+      "Telegramda kuchli qamrov",
+      "Tez bajarish muddati",
     ],
-    availability: "Available from Oct 8",
+    availability: "8-oktabrdan band qilish mumkin",
     unavailableDates: ["2026-10-10", "2026-10-11", "2026-10-24"],
   },
   {
@@ -265,8 +298,8 @@ export const creators: Creator[] = [
     verified: true,
     category: "Fashion",
     tags: ["Fashion", "Beauty"],
-    location: "Tashkent, Uzbekistan",
-    bio: "Fashion editor turned creator. Styling, brand edits and seasonal lookbooks.",
+    location: "Toshkent, O‘zbekiston",
+    bio: "Moda muharriridan kreatorga aylangan. Stilistika, brend intervyulari va mavsumiy lukbuklar.",
     platforms: ["Instagram", "TikTok"],
     followers: "780K",
     followersNum: 780000,
@@ -277,13 +310,13 @@ export const creators: Creator[] = [
     reviews: 102,
     audience: {
       age: "18–30",
-      gender: "79% female",
-      country: "Uzbekistan",
+      gender: "79% ayol",
+      country: "O‘zbekiston",
       split: [
-        { label: "Uzbekistan", value: 66 },
-        { label: "Kazakhstan", value: 15 },
-        { label: "Russia", value: 12 },
-        { label: "Other", value: 7 },
+        { label: "O‘zbekiston", value: 66 },
+        { label: "Qozog‘iston", value: 15 },
+        { label: "Rossiya", value: 12 },
+        { label: "Boshqa", value: 7 },
       ],
     },
     services: [
@@ -292,24 +325,28 @@ export const creators: Creator[] = [
         name: "Instagram Story",
         platform: "Instagram",
         price: 350,
-        bullets: ["3 Stories", "Styling sequence", "Link sticker"],
-        limit: { used: 10, max: 10, period: "this month" },
+        bullets: ["3 ta Story", "Stilistika ketma-ketligi", "Havola stikeri"],
+        limit: { used: 10, max: 10, period: "shu oy" },
       },
       {
         id: "ig-post",
-        name: "Instagram Post",
+        name: "Instagram post",
         platform: "Instagram",
         price: 800,
-        bullets: ["Editorial feed post", "Brand tag", "Caption included"],
-        limit: { used: 2, max: 6, period: "this month" },
+        bullets: [
+          "Muharrirlik lentasi posti",
+          "Brend tegi",
+          "Sarlavha kiritilgan",
+        ],
+        limit: { used: 2, max: 6, period: "shu oy" },
       },
     ],
     matchScore: 78,
     matchReasons: [
-      "Strong lifestyle crossover",
-      "High save rate on product posts",
+      "Turmush tarzi bilan kuchli mos kelish",
+      "Mahsulot postlarida saqlash darajasi yuqori",
     ],
-    availability: "Available from Oct 6",
+    availability: "6-oktabrdan band qilish mumkin",
     unavailableDates: ["2026-10-08", "2026-10-15", "2026-10-22"],
   },
   {
@@ -319,8 +356,8 @@ export const creators: Creator[] = [
     verified: true,
     category: "Comedy",
     tags: ["Comedy", "Lifestyle"],
-    location: "Samarkand, Uzbekistan",
-    bio: "Sketches and everyday humour. Brand integrations that people actually watch to the end.",
+    location: "Samarqand, O‘zbekiston",
+    bio: "Sketchlar va kundalik hazil. Odamlar oxirigacha tomosha qiladigan brend integratsiyalari.",
     platforms: ["Instagram", "TikTok", "YouTube"],
     followers: "1.8M",
     followersNum: 1800000,
@@ -331,13 +368,13 @@ export const creators: Creator[] = [
     reviews: 173,
     audience: {
       age: "16–34",
-      gender: "55% male",
-      country: "Uzbekistan",
+      gender: "55% erkak",
+      country: "O‘zbekiston",
       split: [
-        { label: "Uzbekistan", value: 71 },
-        { label: "Kazakhstan", value: 13 },
-        { label: "Russia", value: 10 },
-        { label: "Other", value: 6 },
+        { label: "O‘zbekiston", value: 71 },
+        { label: "Qozog‘iston", value: 13 },
+        { label: "Rossiya", value: 10 },
+        { label: "Boshqa", value: 6 },
       ],
     },
     services: [
@@ -346,8 +383,8 @@ export const creators: Creator[] = [
         name: "Instagram Story",
         platform: "Instagram",
         price: 500,
-        bullets: ["2 Stories", "In-character mention", "Link sticker"],
-        limit: { used: 6, max: 8, period: "this month" },
+        bullets: ["2 ta Story", "Obraz ichida tilga olish", "Havola stikeri"],
+        limit: { used: 6, max: 8, period: "shu oy" },
       },
       {
         id: "ig-reel",
@@ -355,19 +392,31 @@ export const creators: Creator[] = [
         platform: "Instagram",
         price: 1000,
         bullets: [
-          "Sketch integration",
-          "Script by creator",
-          "Up to 60 seconds",
+          "Sketch integratsiyasi",
+          "Ssenariy kreator tomonidan",
+          "60 soniyagacha",
         ],
-        limit: { used: 5, max: 5, period: "this month" },
+        limit: { used: 5, max: 5, period: "shu oy" },
+      },
+      {
+        id: "ig-post",
+        name: "Instagram post",
+        platform: "Instagram",
+        price: 700,
+        bullets: [
+          "Komik karusel post",
+          "Brend tegi",
+          "Sarlavha kiritilgan",
+        ],
+        limit: { used: 3, max: 7, period: "shu oy" },
       },
     ],
     matchScore: 74,
     matchReasons: [
-      "Largest reach on the platform",
-      "Very high completion rate",
+      "Platformadagi eng katta qamrov",
+      "Juda yuqori ko‘rib bitirish darajasi",
     ],
-    availability: "Available from Oct 12",
+    availability: "12-oktabrdan band qilish mumkin",
     unavailableDates: ["2026-10-13", "2026-10-20", "2026-10-27"],
   },
 ];
@@ -389,33 +438,97 @@ export const categories = [
 export const getCreator = (username: string) =>
   creators.find((c) => c.username === username);
 
+const DEFAULT_CREATOR_PHOTO =
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=768&h=960&fit=crop";
+
+/** Shape shared by the API's public/list influencer-profile responses. */
+export type PublicProfileLike = {
+  username: string;
+  display_name: string;
+  bio: string | null;
+  category_name: string;
+  location: string | null;
+  avatar_url: string | null;
+  available_from: string | null;
+  available_to: string | null;
+};
+
+/**
+ * Builds a `Creator` (the UI's display shape) out of a real backend profile.
+ * Fields the backend doesn't track yet (ratings, engagement, audience, ...)
+ * are filled with neutral placeholders rather than fabricated numbers.
+ */
+export function creatorFromProfile(
+  profile: PublicProfileLike,
+  priceFrom: number | null = null,
+): Creator {
+  return {
+    username: profile.username,
+    name: profile.display_name,
+    photo: profile.avatar_url ?? DEFAULT_CREATOR_PHOTO,
+    verified: false,
+    category: profile.category_name,
+    tags: [profile.category_name],
+    location: profile.location ?? "Manzil ko‘rsatilmagan",
+    bio: profile.bio ?? "Bu kreator hali bio qo‘shmagan.",
+    platforms: [],
+    followers: "—",
+    followersNum: 0,
+    avgViews: "—",
+    engagement: "—",
+    responseRate: "—",
+    rating: 0,
+    reviews: 0,
+    audience: { age: "—", gender: "—", country: "—", split: [] },
+    services:
+      priceFrom != null
+        ? [
+            {
+              id: "base",
+              name: profile.category_name,
+              platform: "Other",
+              price: priceFrom,
+              bullets: [],
+            },
+          ]
+        : [],
+    matchScore: 0,
+    matchReasons: [],
+    availability:
+      profile.available_from && profile.available_to
+        ? `Har kuni ${profile.available_from}–${profile.available_to} band qilish mumkin`
+        : "Mavjudlik belgilanmagan",
+    unavailableDates: [],
+  };
+}
+
 export const reviews = [
   {
     company: "Nike Uzbekistan",
     initials: "NU",
     rating: 5,
     comment:
-      "Delivered ahead of schedule and the story drove our best single-day traffic this quarter. Communication was excellent.",
+      "Muddatidan oldin taqdim etildi va story shu chorakdagi eng yaxshi bir kunlik trafikni keltirdi. Muloqot juda yaxshi edi.",
     type: "Instagram Story",
-    date: "Sep 2026",
+    date: "2026-sen",
   },
   {
     company: "FitFuel",
     initials: "FF",
     rating: 5,
     comment:
-      "The reel felt native, not like an ad. We re-booked the same week.",
+      "Reel sun'iy emas, tabiiy ko‘rindi. Xuddi shu hafta ichida qayta buyurtma berdik.",
     type: "Instagram Reel",
-    date: "Aug 2026",
+    date: "2026-avg",
   },
   {
     company: "Uzum Market",
     initials: "UM",
     rating: 4,
     comment:
-      "Solid reach and clean reporting. Creative feedback loop could be a bit faster.",
-    type: "Telegram Post",
-    date: "Aug 2026",
+      "Qamrov yaxshi va hisobot aniq. Kreativ bo‘yicha fikr-mulohaza aylanishi biroz tezroq bo‘lsa yaxshi bo‘lardi.",
+    type: "Telegram post",
+    date: "2026-avg",
   },
 ];
 
@@ -430,37 +543,37 @@ export type CampaignStatus =
 export const campaigns = [
   {
     id: "RB-48219",
-    title: "Nike Summer Campaign",
+    title: "Nike yozgi kampaniyasi",
     creator: "footballstar",
     format: "Instagram Story",
-    date: "October 5, 2026",
+    date: "2026-yil 5-oktabr",
     amount: 420,
     status: "Confirmed" as CampaignStatus,
   },
   {
     id: "RB-48104",
-    title: "Protein Bar Launch",
+    title: "Protein batonchasi taqdimoti",
     creator: "fitblogger",
     format: "Instagram Reel",
-    date: "October 11, 2026",
+    date: "2026-yil 11-oktabr",
     amount: 525,
     status: "Content Review" as CampaignStatus,
   },
   {
     id: "RB-47980",
-    title: "Autumn Lookbook",
+    title: "Kuzgi lukbuk",
     creator: "fashionista",
-    format: "Instagram Post",
-    date: "October 18, 2026",
+    format: "Instagram post",
+    date: "2026-yil 18-oktabr",
     amount: 840,
     status: "Scheduled" as CampaignStatus,
   },
   {
     id: "RB-47755",
-    title: "Smartwatch Drop",
+    title: "Smart soat taqdimoti",
     creator: "techuz",
-    format: "Telegram Post",
-    date: "September 12, 2026",
+    format: "Telegram post",
+    date: "2026-yil 12-sentabr",
     amount: 210,
     status: "Completed" as CampaignStatus,
   },

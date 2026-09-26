@@ -22,6 +22,11 @@ export const dashboard = {
   tableDate: "Sana",
   tableAmount: "Summa",
   tableStatus: "Holat",
+  tableActions: "Amallar",
+  confirmBooking: "Tasdiqlash",
+  declineBooking: "Rad etish",
+  cancelBooking: "Bekor qilish",
+  couldNotUpdateBooking: "Bron holatini yangilab bo‘lmadi.",
   calendarLabel: "Kalendar",
   manageAvailability: "Bandligingizni boshqaring",
   availabilityHint:

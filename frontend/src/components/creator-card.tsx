@@ -2,6 +2,8 @@ import { Link } from "@tanstack/react-router";
 import { BadgeCheck, Heart, MapPin, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Creator } from "@/lib/data";
+import { CATEGORY_LABELS, translateEnum } from "@/lib/i18n/enums";
+import { creatorContent as t } from "@/lib/i18n/creators";
 import { cn } from "@/lib/utils";
 import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 
@@ -23,7 +25,7 @@ export function CreatorCard({ creator }: { creator: Creator }) {
           to="/creator/$username"
           params={{ username: creator.username }}
           className="block h-full w-full"
-          aria-label={`View ${creator.name}'s profile`}
+          aria-label={t.viewProfile(creator.name)}
         >
           <img
             src={creator.photo}
@@ -39,7 +41,7 @@ export function CreatorCard({ creator }: { creator: Creator }) {
             event.preventDefault();
             setFav(toggleWishlist(creator.username));
           }}
-          aria-label={fav ? "Remove from wishlist" : "Add to wishlist"}
+          aria-label={fav ? t.removeFromWishlist : t.addToWishlist}
           className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 backdrop-blur transition-colors hover:bg-background"
         >
           <Heart
@@ -65,7 +67,7 @@ export function CreatorCard({ creator }: { creator: Creator }) {
         to="/creator/$username"
         params={{ username: creator.username }}
         className="block space-y-3 p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label={`View ${creator.name}'s profile`}
+        aria-label={t.viewProfile(creator.name)}
       >
         <div>
           <div className="flex items-center gap-1.5">
@@ -81,18 +83,18 @@ export function CreatorCard({ creator }: { creator: Creator }) {
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
-            {creator.name} • {creator.category}
+            {creator.name} • {translateEnum(CATEGORY_LABELS, creator.category)}
           </p>
         </div>
 
         <div className="flex items-center gap-4 text-sm">
           <span>
             <strong className="font-semibold">{creator.followers}</strong>{" "}
-            <span className="text-muted-foreground">followers</span>
+            <span className="text-muted-foreground">{t.followers}</span>
           </span>
           <span>
             <strong className="font-semibold">{creator.engagement}</strong>{" "}
-            <span className="text-muted-foreground">eng.</span>
+            <span className="text-muted-foreground">{t.engagementShort}</span>
           </span>
         </div>
 
@@ -102,7 +104,7 @@ export function CreatorCard({ creator }: { creator: Creator }) {
 
         <div className="border-t border-border pt-3">
           <p className="text-sm">
-            <span className="text-muted-foreground">From </span>
+            <span className="text-muted-foreground">{t.from} </span>
             <strong className="font-display text-base font-bold">
               ${from}
             </strong>

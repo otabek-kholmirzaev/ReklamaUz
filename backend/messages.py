@@ -41,6 +41,9 @@ class Messages:
     DATE_ALREADY_BOOKED = "Bu sana allaqachon band qilingan"
     BOOKING_NOT_FOUND = "Bron topilmadi"
     NO_ACCESS_TO_BOOKING = "Sizda ushbu bronga kirish huquqi yo‘q"
+    ONLY_PENDING_BOOKINGS_CAN_BE_UPDATED = "Faqat kutilayotgan bronlar holatini o‘zgartirish mumkin"
+    INFLUENCER_CAN_ONLY_CONFIRM_OR_CANCEL = "Influencer bronni faqat tasdiqlashi yoki bekor qilishi mumkin"
+    CLIENT_CAN_ONLY_CANCEL_BOOKING = "Mijoz bronni faqat bekor qilishi mumkin"
 
     # --- Availability ---
     DATE_ALREADY_BLOCKED = "Bu sana allaqachon bloklangan"

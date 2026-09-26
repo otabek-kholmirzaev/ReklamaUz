@@ -9,21 +9,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { categories, creators } from "@/lib/data";
+import { discover as t } from "@/lib/i18n/discover";
+import { CATEGORY_LABELS, translateEnum } from "@/lib/i18n/enums";
 
 export const Route = createFileRoute("/discover")({
   head: () => ({
     meta: [
-      { title: "Discover Creators — Reklama.uz" },
+      { title: t.pageTitle },
       {
         name: "description",
-        content:
-          "Browse verified creators by category, platform, audience, price and availability, then book advertising directly.",
+        content: t.pageDescription,
       },
-      { property: "og:title", content: "Discover Creators — Reklama.uz" },
+      { property: "og:title", content: t.pageTitle },
       {
         property: "og:description",
-        content:
-          "Filter creators by audience, price and availability and book in minutes.",
+        content: t.ogDescription,
       },
     ],
   }),
@@ -98,35 +98,36 @@ function Discover() {
     <div className="min-h-screen bg-background">
       <SiteNav />
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-        <h1 className="font-display text-4xl font-extrabold">
-          Discover Creators
-        </h1>
+        <h1 className="font-display text-4xl font-extrabold">{t.heading}</h1>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search creators, categories, or audiences…"
+              placeholder={t.searchPlaceholder}
               className="h-12 rounded-xl pl-10"
             />
           </div>
           <Button size="lg" variant="outline" asChild>
             <Link to="/copilot">
-              <Sparkles className="mr-1 h-4 w-4" /> Try describing your campaign
-              instead
+              <Sparkles className="mr-1 h-4 w-4" /> {t.tryCopilot}
             </Link>
           </Button>
         </div>
 
         <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-          <FilterChip active={!cat} onClick={() => setCat(null)} label="All" />
+          <FilterChip
+            active={!cat}
+            onClick={() => setCat(null)}
+            label={t.all}
+          />
           {categories.map((c) => (
             <FilterChip
               key={c}
               active={cat === c}
               onClick={() => setCat(c)}
-              label={c}
+              label={translateEnum(CATEGORY_LABELS, c)}
             />
           ))}
         </div>
@@ -134,7 +135,7 @@ function Discover() {
         <div className="mt-8 grid gap-8 lg:grid-cols-[260px_1fr]">
           <aside className="space-y-6 rounded-2xl border border-border bg-card p-5 shadow-soft lg:sticky lg:top-24 lg:h-fit">
             <div>
-              <Label className="text-sm font-semibold">Starting price</Label>
+              <Label className="text-sm font-semibold">{t.startingPrice}</Label>
               <Slider
                 className="mt-4"
                 value={[maxPrice]}
@@ -144,11 +145,11 @@ function Discover() {
                 onValueChange={(v) => setMaxPrice(v[0])}
               />
               <p className="mt-2 text-sm text-muted-foreground">
-                Up to ${maxPrice}
+                {t.upTo(maxPrice)}
               </p>
             </div>
             <div className="space-y-2.5">
-              <Label className="text-sm font-semibold">Platform</Label>
+              <Label className="text-sm font-semibold">{t.platform}</Label>
               {["Instagram", "Telegram", "TikTok", "YouTube"].map((p) => (
                 <label
                   key={p}
@@ -163,7 +164,7 @@ function Discover() {
               ))}
             </div>
             <div className="space-y-2.5">
-              <Label className="text-sm font-semibold">Followers</Label>
+              <Label className="text-sm font-semibold">{t.followers}</Label>
               {["100K – 500K", "500K – 1M", "1M+"].map((p) => (
                 <label
                   key={p}
@@ -180,7 +181,7 @@ function Discover() {
               ))}
             </div>
             <div className="space-y-2.5">
-              <Label className="text-sm font-semibold">Availability</Label>
+              <Label className="text-sm font-semibold">{t.availability}</Label>
               <Input
                 type="date"
                 value={availableOn}
@@ -192,13 +193,13 @@ function Discover() {
                 checked={verifiedOnly}
                 onCheckedChange={(v) => setVerifiedOnly(Boolean(v))}
               />
-              Verified only
+              {t.verifiedOnly}
             </label>
           </aside>
 
           <section>
             <p className="text-sm text-muted-foreground">
-              {results.length} creators available
+              {t.creatorsAvailable(results.length)}
             </p>
             <div className="mt-4 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {results.map((c) => (
@@ -207,7 +208,7 @@ function Discover() {
             </div>
             {results.length === 0 && (
               <p className="mt-16 text-center text-muted-foreground">
-                No creators match these filters yet.
+                {t.noResults}
               </p>
             )}
           </section>

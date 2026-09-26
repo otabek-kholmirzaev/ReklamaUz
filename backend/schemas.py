@@ -138,6 +138,10 @@ class PublicInfluencerProfileResponse(InfluencerProfileResponse):
     category_name: str
 
 
+class InfluencerListItemResponse(PublicInfluencerProfileResponse):
+    price_from: float | None = None
+
+
 class CategoryResponse(BaseModel):
     id: int
     name: str
@@ -200,6 +204,10 @@ class BookingCreate(BaseModel):
     @classmethod
     def validate_date(cls, value: str) -> str:
         return _parse_iso_date(value)
+
+
+class BookingStatusUpdate(BaseModel):
+    status: BookingStatus
 
 
 class BookingResponse(BaseModel):

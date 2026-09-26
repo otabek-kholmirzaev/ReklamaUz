@@ -79,6 +79,21 @@ function Dashboard() {
 
   const isInfluencer = session?.user.role === "INFLUENCER";
 
+  const [statusError, setStatusError] = useState("");
+  const updateBookingStatusMutation = useMutation({
+    mutationFn: ({ id, status: nextStatus }: { id: number; status: BookingResponse["status"] }) =>
+      apiFetch<BookingResponse>(`/api/bookings/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: nextStatus }),
+      }),
+    onSuccess: () => {
+      setStatusError("");
+      void queryClient.invalidateQueries({ queryKey: ["bookings", "my"] });
+    },
+    onError: (err) =>
+      setStatusError(err instanceof Error ? err.message : t.couldNotUpdateBooking),
+  });
+
   const { data: blockedDates } = useQuery({
     queryKey: ["availability", "me"],
     queryFn: () =>
@@ -218,6 +233,7 @@ function Dashboard() {
                     </th>
                     <th className="px-5 py-3">{t.tableAmount}</th>
                     <th className="px-5 py-3">{t.tableStatus}</th>
+                    <th className="px-5 py-3">{t.tableActions}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border bg-card">
@@ -237,9 +253,15 @@ function Dashboard() {
                         </p>
                         {booking.birthday_recipient ? (
                           <div className="mt-0.5 space-y-0.5 text-xs text-muted-foreground">
-                            <p>{booking.birthday_recipient} · {booking.recipient_phone}</p>
+                            <p>
+                              {booking.birthday_recipient} ·{" "}
+                              {booking.recipient_phone}
+                            </p>
                             {booking.delivery_datetime && (
-                              <p>Yetkazib berish: {booking.delivery_datetime.replace("T", " ")}</p>
+                              <p>
+                                Yetkazib berish:{" "}
+                                {booking.delivery_datetime.replace("T", " ")}
+                              </p>
                             )}
                           </div>
                         ) : booking.description ? (
@@ -262,11 +284,61 @@ function Dashboard() {
                           status={capitalizeStatus(booking.status)}
                         />
                       </td>
+                      <td className="px-5 py-4">
+                        {booking.status === "PENDING" && isInfluencer && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              disabled={updateBookingStatusMutation.isPending}
+                              onClick={() =>
+                                updateBookingStatusMutation.mutate({
+                                  id: booking.id,
+                                  status: "CONFIRMED",
+                                })
+                              }
+                            >
+                              {t.confirmBooking}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={updateBookingStatusMutation.isPending}
+                              onClick={() =>
+                                updateBookingStatusMutation.mutate({
+                                  id: booking.id,
+                                  status: "CANCELLED",
+                                })
+                              }
+                            >
+                              {t.declineBooking}
+                            </Button>
+                          </div>
+                        )}
+                        {booking.status === "PENDING" && !isInfluencer && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={updateBookingStatusMutation.isPending}
+                            onClick={() =>
+                              updateBookingStatusMutation.mutate({
+                                id: booking.id,
+                                status: "CANCELLED",
+                              })
+                            }
+                          >
+                            {t.cancelBooking}
+                          </Button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          )}
+
+          {statusError && (
+            <p className="mt-3 text-sm text-destructive">{statusError}</p>
           )}
         </section>
 

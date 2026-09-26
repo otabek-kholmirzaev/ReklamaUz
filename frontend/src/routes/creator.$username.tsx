@@ -47,6 +47,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
+  creatorFromProfile,
   creators,
   getCreator,
   reviews,
@@ -142,39 +143,10 @@ function buildRealServices(
   }));
 }
 
-const DEFAULT_CREATOR_PHOTO =
-  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=768&h=960&fit=crop";
-
 function buildRealOnlyCreator(
   profile: PublicInfluencerProfileResponse,
 ): Creator {
-  return {
-    username: profile.username,
-    name: profile.display_name,
-    photo: profile.avatar_url ?? DEFAULT_CREATOR_PHOTO,
-    verified: false,
-    category: profile.category_name,
-    tags: [profile.category_name],
-    location: profile.location ?? t.locationNotSet,
-    bio: profile.bio ?? t.bioNotSet,
-    platforms: [],
-    followers: "—",
-    followersNum: 0,
-    avgViews: "—",
-    engagement: "—",
-    responseRate: "—",
-    rating: 0,
-    reviews: 0,
-    audience: { age: "—", gender: "—", country: "—", split: [] },
-    services: [],
-    matchScore: 0,
-    matchReasons: [],
-    availability:
-      profile.available_from && profile.available_to
-        ? t.availableDaily(profile.available_from, profile.available_to)
-        : t.availabilityNotSet,
-    unavailableDates: [],
-  };
+  return creatorFromProfile(profile);
 }
 
 function useRealCreatorData(username: string) {
@@ -691,7 +663,8 @@ function CreatorProfile({
                         <div>
                           <p className="font-semibold">{t.birthdayPlatform}</p>
                           <p className="mt-1 text-sm text-muted-foreground">
-                            Sanani tanlang — tabrik ma'lumotlari keyingi bosqichda kiritiladi.
+                            Sanani tanlang — tabrik ma'lumotlari keyingi
+                            bosqichda kiritiladi.
                           </p>
                         </div>
                       </div>
@@ -706,7 +679,9 @@ function CreatorProfile({
                             {t.from}
                             <select
                               value={startTime}
-                              onChange={(event) => setStartTime(event.target.value)}
+                              onChange={(event) =>
+                                setStartTime(event.target.value)
+                              }
                               className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                             >
                               {TIME_OPTIONS.map((time) => (
@@ -718,7 +693,9 @@ function CreatorProfile({
                             {t.to}
                             <select
                               value={endTime}
-                              onChange={(event) => setEndTime(event.target.value)}
+                              onChange={(event) =>
+                                setEndTime(event.target.value)
+                              }
                               className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                             >
                               {TIME_OPTIONS.map((time) => (
@@ -909,15 +886,23 @@ function CreatorProfile({
                 {isBirthdayBooking ? (
                   <>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-muted-foreground">{t.recipient}</span>
+                      <span className="text-muted-foreground">
+                        {t.recipient}
+                      </span>
                       <span className="font-medium">{birthdayRecipient}</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-muted-foreground">{t.deliveryDateLabel}</span>
-                      <span className="font-medium">{deliveryDateTime.replace("T", " ")}</span>
+                      <span className="text-muted-foreground">
+                        {t.deliveryDateLabel}
+                      </span>
+                      <span className="font-medium">
+                        {deliveryDateTime.replace("T", " ")}
+                      </span>
                     </div>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-muted-foreground">{t.recipientPhoneLabel}</span>
+                      <span className="text-muted-foreground">
+                        {t.recipientPhoneLabel}
+                      </span>
                       <span className="font-medium">{recipientPhone}</span>
                     </div>
                   </>
@@ -976,7 +961,9 @@ function CreatorProfile({
                   {bookingStep === 1
                     ? t.stepReview
                     : bookingStep === 2
-                      ? (isBirthdayBooking ? t.stepBirthdayDetails : t.stepCampaignDetails)
+                      ? isBirthdayBooking
+                        ? t.stepBirthdayDetails
+                        : t.stepCampaignDetails
                       : t.stepPayment}
                 </span>
               </div>
@@ -1032,7 +1019,9 @@ function CreatorProfile({
                       {t.cancel}
                     </Button>
                     <Button onClick={() => setBookingStep(2)}>
-                      {isBirthdayBooking ? t.nextBirthdayDetails : t.nextCampaignDetails}
+                      {isBirthdayBooking
+                        ? t.nextBirthdayDetails
+                        : t.nextCampaignDetails}
                     </Button>
                   </DialogFooter>
                 </>
@@ -1044,7 +1033,8 @@ function CreatorProfile({
                     <>
                       <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                          <PartyPopper className="h-4 w-4" /> {t.birthdayDetailsTitle}
+                          <PartyPopper className="h-4 w-4" />{" "}
+                          {t.birthdayDetailsTitle}
                         </DialogTitle>
                         <DialogDescription>
                           {t.birthdayDetailsDescription}
@@ -1058,7 +1048,9 @@ function CreatorProfile({
                           </label>
                           <textarea
                             value={birthdayGreeting}
-                            onChange={(e) => setBirthdayGreeting(e.target.value)}
+                            onChange={(e) =>
+                              setBirthdayGreeting(e.target.value)
+                            }
                             placeholder={t.birthdayGreetingPlaceholder}
                             rows={4}
                             className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
@@ -1072,7 +1064,9 @@ function CreatorProfile({
                           <input
                             type="text"
                             value={birthdayRecipient}
-                            onChange={(e) => setBirthdayRecipient(e.target.value)}
+                            onChange={(e) =>
+                              setBirthdayRecipient(e.target.value)
+                            }
                             placeholder={t.birthdayRecipientPlaceholder}
                             className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                           />
@@ -1085,7 +1079,9 @@ function CreatorProfile({
                           <input
                             type="datetime-local"
                             value={deliveryDateTime}
-                            onChange={(e) => setDeliveryDateTime(e.target.value)}
+                            onChange={(e) =>
+                              setDeliveryDateTime(e.target.value)
+                            }
                             className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                           />
                           <p className="text-xs text-muted-foreground">
@@ -1111,12 +1107,20 @@ function CreatorProfile({
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button variant="outline" onClick={() => setBookingStep(1)}>
+                        <Button
+                          variant="outline"
+                          onClick={() => setBookingStep(1)}
+                        >
                           {t.back}
                         </Button>
                         <Button
                           onClick={() => setBookingStep(3)}
-                          disabled={!birthdayGreeting || !birthdayRecipient || !deliveryDateTime || !recipientPhone}
+                          disabled={
+                            !birthdayGreeting ||
+                            !birthdayRecipient ||
+                            !deliveryDateTime ||
+                            !recipientPhone
+                          }
                         >
                           {t.nextPayment}
                         </Button>
@@ -1126,7 +1130,8 @@ function CreatorProfile({
                     <>
                       <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                          <FileText className="h-4 w-4" /> {t.campaignDetailsTitle}
+                          <FileText className="h-4 w-4" />{" "}
+                          {t.campaignDetailsTitle}
                         </DialogTitle>
                         <DialogDescription>
                           {t.campaignDetailsDescription}
@@ -1165,7 +1170,10 @@ function CreatorProfile({
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button variant="outline" onClick={() => setBookingStep(1)}>
+                        <Button
+                          variant="outline"
+                          onClick={() => setBookingStep(1)}
+                        >
                           {t.back}
                         </Button>
                         <Button onClick={() => setBookingStep(3)}>
