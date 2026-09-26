@@ -119,6 +119,17 @@ class BookingStatus(str, Enum):
     COMPLETED = "COMPLETED"
 
 
+class InfluencerBookingStatusUpdate(BaseModel):
+    status: BookingStatus
+
+    @field_validator("status")
+    @classmethod
+    def only_confirm_or_cancel(cls, value: BookingStatus) -> BookingStatus:
+        if value not in (BookingStatus.CONFIRMED, BookingStatus.CANCELLED):
+            raise ValueError("Influencer can only set status to CONFIRMED or CANCELLED")
+        return value
+
+
 class BookingCreate(BaseModel):
     service_id: int = Field(gt=0)
     date: str = Field(description="Booking date in YYYY-MM-DD format")
@@ -136,4 +147,5 @@ class BookingResponse(BaseModel):
     description: str | None
     created_at: datetime
     updated_at: datetime
+
 

@@ -19,6 +19,7 @@ from .schemas import (
     BookingCreate,
     BookingResponse,
     BookingStatus,
+    InfluencerBookingStatusUpdate,
     InfluencerProfileResponse,
     SignInRequest,
     SignUpRequest,
@@ -388,6 +389,43 @@ def get_my_bookings(
                 (user["id"],),
             ).fetchall()
     return [row_to_booking(row) for row in rows]
+
+
+@app.patch("/api/influencer/bookings/{booking_id}/status", response_model=BookingResponse)
+def update_booking_status(
+    booking_id: int,
+    payload: InfluencerBookingStatusUpdate,
+    user: dict = Depends(current_influencer_user),
+) -> BookingResponse:
+    """Influencer confirms or cancels a booking. Only PENDING bookings can be acted on."""
+    with connection_context() as connection:
+        row = connection.execute(
+            "SELECT * FROM bookings WHERE id = ?", (booking_id,)
+        ).fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+
+    booking = dict(row)
+
+    if booking["influencer_id"] != user["id"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This booking does not belong to you")
+
+    if booking["status"] != BookingStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only PENDING bookings can be confirmed or cancelled (current: {booking['status']})",
+        )
+
+    with connection_context() as connection:
+        connection.execute(
+            "UPDATE bookings SET status = ?, updated_at = ? WHERE id = ?",
+            (payload.status.value, datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), booking_id),
+        )
+        connection.commit()
+        row = connection.execute("SELECT * FROM bookings WHERE id = ?", (booking_id,)).fetchone()
+
+    return row_to_booking(row)
 
 
 @app.get("/api/bookings/{booking_id}", response_model=BookingResponse)
