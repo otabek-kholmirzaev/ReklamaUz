@@ -1,66 +1,81 @@
-# ReklamaUz API
+# Reklama.uz — Backend
 
-FastAPI + SQLite authentication API. Email verification is intentionally not required yet.
+FastAPI + SQLite REST API. Handles auth, influencer profiles, ad services, bookings, and availability.
+
+## Stack
+
+- **Python 3.10**, FastAPI, Uvicorn
+- **SQLite** — single-file DB at `backend/reklama.db`
+- **Custom JWT** — HMAC-SHA256, no third-party JWT lib
+- **Resend** — transactional email (OTP verification)
+- **httpx** — Google OAuth token exchange
 
 ## Run locally
 
-From the repository root:
+From the repository root (must use the Python 3.10 venv):
 
 ```bash
-python -m venv .venv
-.venv\\Scripts\\activate
-pip install -r backend/requirements.txt
-uvicorn backend.main:app --reload
+.venv310/bin/uvicorn backend.main:app --reload --port 8000
 ```
 
-The SQLite database is created at `backend/reklama.db` on first startup. The 20 influencer categories are seeded automatically and safely on every startup. Set `JWT_SECRET` before using this outside local development.
+The DB and all tables are created automatically on first startup. Categories and ad types are seeded idempotently on every start.
 
-## Endpoints
+## Environment
 
-### `POST /api/users/signup`
+Create `backend/.env`:
 
-```json
-{
-  "email": "creator@example.com",
-  "password": "strong-password",
-  "role": "INFLUENCER"
-}
+```env
+JWT_SECRET=change-me-in-production
+FRONTEND_URL=http://localhost:8081
+
+# Email verification (Resend)
+RESEND_API_KEY=re_...
+
+# Google OAuth
+GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-...
+GOOGLE_REDIRECT_URI=http://localhost:8000/api/auth/google/callback
 ```
 
-Allowed roles are `CLIENT` and `INFLUENCER`. A successful response returns a JWT access token and the public user record.
+## API overview
 
-### `POST /api/users/signin`
+### Auth
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/users/signup` | Start email signup — sends OTP |
+| `POST` | `/api/users/verify-email` | Verify OTP, create user, return JWT |
+| `POST` | `/api/users/signin` | Email + password login, return JWT |
+| `GET` | `/api/auth/google` | Redirect to Google consent screen |
+| `GET` | `/api/auth/google/callback` | Exchange code, upsert user, redirect to frontend with JWT |
 
-```json
-{
-  "email": "creator@example.com",
-  "password": "strong-password"
-}
-```
+### Influencer profiles
+| Method | Path | Auth |
+|---|---|---|
+| `POST` | `/api/influencer-profiles` | INFLUENCER |
+| `PATCH` | `/api/influencer-profiles/me` | INFLUENCER |
+| `GET` | `/api/influencer-profiles` | Public |
+| `GET` | `/api/influencer-profiles/:username` | Public |
+| `GET` | `/api/influencer-profiles/:username/services` | Public |
 
-## Influencer profile endpoints
+### Bookings
+| Method | Path | Auth |
+|---|---|---|
+| `POST` | `/api/bookings` | CLIENT |
+| `GET` | `/api/bookings/my` | Any |
+| `GET` | `/api/bookings/:id` | Owner |
+| `PATCH` | `/api/bookings/:id` | Owner |
 
-Both endpoints require the access token returned by signup/signin:
+Bookings support birthday video fields: `birthday_greeting`, `birthday_recipient`, `delivery_datetime`, `recipient_phone`.
 
-```http
-Authorization: Bearer <access_token>
-```
+### Availability
+| Method | Path | Auth |
+|---|---|---|
+| `GET` | `/api/availability/:user_id` | Public |
+| `GET` | `/api/availability/me` | INFLUENCER |
+| `POST` | `/api/availability` | INFLUENCER |
+| `DELETE` | `/api/availability/:date` | INFLUENCER |
 
-### `POST /api/influencer-profiles`
-
-Creates one profile for the authenticated `INFLUENCER` user using `multipart/form-data`. The `category_id` must reference an existing seeded category. Send the avatar as the `avatar` file field; supported types are JPG, PNG, WEBP, and GIF, up to 5 MB.
-
-Example form fields:
-
-```text
-username=creator_one
-display_name=Creator One
-bio=Content creator from Tashkent
-category_id=1
-location=Tashkent
-avatar=<image file>
-```
-
-### `PATCH /api/influencer-profiles/me`
-
-Updates any supplied profile fields for the authenticated influencer using `multipart/form-data`. A new `avatar` file replaces the stored avatar URL. `CLIENT` users receive `403 Forbidden`.
+### Other
+- `GET /api/categories` — influencer categories
+- `GET /api/ad-types` — ad types (INSTAGRAM_POST, BIRTHDAY_WISH, etc.)
+- `GET /uploads/:filename` — static avatar files

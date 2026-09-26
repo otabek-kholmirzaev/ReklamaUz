@@ -1,28 +1,56 @@
-# Exact Screenshot
+# Reklama.uz — Frontend
 
-Implement exactly the screenshot and nothing else
+React 19 SSR app built with TanStack Start. Serves the creator marketplace UI: discovery, booking, creator studio, dashboard, AI copilot, and auth.
 
-This project was built with [Lovable](https://lovable.dev).
+**Live:** https://reklama-uz.lovable.app/
 
-## Build with Lovable
+## Stack
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/a4cbf101-bb54-4ae2-b0e2-ea9f792da018).
+- **TanStack Start** — SSR + file-based routing (TanStack Router)
+- **React 19** + TypeScript
+- **Tailwind CSS v4** + shadcn/ui (Radix primitives)
+- **TanStack Query** — server state, mutations
+- **Bun** + Vite
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+## Run locally
 
-## Development
+Requires [Bun](https://bun.sh).
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+```bash
+cd frontend
+bun install
+bun run dev
 ```
 
-# Frontend environment
+Vite starts on port `8081` if `8080` is occupied (e.g. by Zookeeper).
 
-Copy `.env.example` to `.env` to configure the Campaign Copilot API URL. Keep OpenAI API keys in the backend's root `.env` only.
+## Environment
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Description |
+|---|---|
+| `VITE_BACKEND_URL` | FastAPI backend URL (default `http://localhost:8000`) |
+| `VITE_API_BASE_URL` | AI Copilot chat server URL (default `http://localhost:3001`) |
+
+## Routes
+
+| Path | Description |
+|---|---|
+| `/` | Homepage |
+| `/discover` | Creator search + filters |
+| `/creator/:username` | Creator profile + booking dialog |
+| `/auth` | Login / signup / Google OAuth callback |
+| `/dashboard` | Booking history, availability calendar |
+| `/studio` | Creator Studio — profile, services, schedule |
+| `/copilot` | AI Campaign Copilot chat |
+| `/become-a-creator` | Creator application form |
+| `/wishlist` | Saved creators |
+
+## Key conventions
+
+- All auth state lives in `localStorage` via `src/lib/auth.ts`; SSR-safe (reads only in `useEffect`)
+- API calls go through `src/lib/api.ts` (`apiFetch`) which attaches the Bearer token automatically
+- UI strings are in `src/lib/i18n/` (Uzbek)
