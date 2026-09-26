@@ -1,9 +1,15 @@
-import { Link } from "@tanstack/react-router";
-import { Bell, BellDot, CalendarClock, Menu, Sparkles } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Bell, BellDot, CalendarClock, LogOut, Menu, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  clearSession,
+  type AuthSession,
+  getSession,
+  SESSION_CHANGED_EVENT,
+} from "@/lib/auth";
 import {
   type AppNotification,
   getNotifications,
@@ -30,7 +36,21 @@ export function Logo() {
 }
 
 export function SiteNav() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [session, setSessionState] = useState<AuthSession | null>(() => getSession());
+
+  useEffect(() => {
+    const handler = () => setSessionState(getSession());
+    window.addEventListener(SESSION_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(SESSION_CHANGED_EVENT, handler);
+  }, []);
+
+  const handleMobileLogout = () => {
+    setOpen(false);
+    clearSession();
+    void navigate({ to: "/" });
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/85 backdrop-blur">
@@ -75,6 +95,41 @@ export function SiteNav() {
                 >
                   Creator Studio
                 </Link>
+                {session ? (
+                  <>
+                    <div className="mt-3 border-t border-border pt-3">
+                      <p className="truncate px-3 pb-1 text-xs text-muted-foreground">
+                        {session.user.email}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleMobileLogout}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-destructive hover:bg-muted"
+                      >
+                        <LogOut className="h-4 w-4" /> Log out
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-3 flex flex-col gap-1 border-t border-border pt-3">
+                    <Link
+                      to="/auth"
+                      search={{ mode: "login" }}
+                      onClick={() => setOpen(false)}
+                      className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
+                    >
+                      Log in
+                    </Link>
+                    <Link
+                      to="/auth"
+                      search={{ mode: "signup" }}
+                      onClick={() => setOpen(false)}
+                      className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted"
+                    >
+                      Sign up
+                    </Link>
+                  </div>
+                )}
               </nav>
             </SheetContent>
           </Sheet>
@@ -104,22 +159,63 @@ export function SiteNav() {
 
         <div className="ml-auto flex items-center gap-1">
           <NotificationBell />
-          <Button variant="ghost" className="hidden lg:inline-flex" asChild>
-            <Link to="/studio">Become a Creator</Link>
-          </Button>
-          <Button variant="outline" className="hidden sm:inline-flex" asChild>
-            <Link to="/auth" search={{ mode: "login" }}>
-              Log in
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link to="/auth" search={{ mode: "signup" }}>
-              Sign up
-            </Link>
-          </Button>
+          <AuthArea />
         </div>
       </div>
     </header>
+  );
+}
+
+function AuthArea() {
+  const navigate = useNavigate();
+  const [session, setSessionState] = useState<AuthSession | null>(() => getSession());
+
+  useEffect(() => {
+    const handler = () => setSessionState(getSession());
+    window.addEventListener(SESSION_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(SESSION_CHANGED_EVENT, handler);
+  }, []);
+
+  const handleLogout = () => {
+    clearSession();
+    void navigate({ to: "/" });
+  };
+
+  if (session) {
+    return (
+      <div className="flex items-center gap-1">
+        <span className="hidden max-w-[160px] truncate px-2 text-sm text-muted-foreground sm:block">
+          {session.user.email}
+        </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Log out"
+          onClick={handleLogout}
+          title="Log out"
+        >
+          <LogOut className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Button variant="ghost" className="hidden lg:inline-flex" asChild>
+        <Link to="/studio">Become a Creator</Link>
+      </Button>
+      <Button variant="outline" className="hidden sm:inline-flex" asChild>
+        <Link to="/auth" search={{ mode: "login" }}>
+          Log in
+        </Link>
+      </Button>
+      <Button asChild>
+        <Link to="/auth" search={{ mode: "signup" }}>
+          Sign up
+        </Link>
+      </Button>
+    </>
   );
 }
 
