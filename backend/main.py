@@ -37,9 +37,14 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="ReklamaUz API", version="0.1.0", lifespan=lifespan)
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+_CORS_ORIGINS = [
+    o.strip()
+    for o in os.getenv("FRONTEND_URL", "http://localhost:3000,http://localhost:8080").split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:3000")],
+    allow_origins=_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH"],
     allow_headers=["*"]

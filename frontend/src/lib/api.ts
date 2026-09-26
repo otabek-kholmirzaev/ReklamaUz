@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth";
+import { clearSession, getSession } from "@/lib/auth";
 
 const apiBaseUrl = (import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
@@ -31,6 +31,7 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   }
 
   if (!response.ok) {
+    if (response.status === 401) clearSession();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload = (await response.json().catch(() => null)) as any;
     const detail = payload?.detail;
