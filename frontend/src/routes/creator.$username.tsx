@@ -47,6 +47,7 @@ import {
   type Creator,
   type Service,
 } from "@/lib/data";
+import { addBookingNotifications } from "@/lib/notifications";
 
 export const Route = createFileRoute("/creator/$username")({
   head: ({ params }) => {
@@ -657,7 +658,21 @@ function CreatorProfile({ creator }: { creator: Creator }) {
                 <Button variant="outline" onClick={closeBooking}>
                   Cancel
                 </Button>
-                <Button onClick={() => setConfirmed(true)}>Send request</Button>
+                <Button
+                  onClick={() => {
+                    if (selectedDate && selected) {
+                      addBookingNotifications({
+                        creatorUsername: creator.username,
+                        creatorName: creator.name,
+                        serviceName: selected.name,
+                        bookingDate: selectedDate,
+                      });
+                    }
+                    setConfirmed(true);
+                  }}
+                >
+                  Send request
+                </Button>
               </DialogFooter>
             </>
           )}
