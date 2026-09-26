@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .database import connection_context, init_db
 from .email import send_verification_email
+from .messages import Messages
 from .schemas import (
     AdServiceCreate,
     AdServiceResponse,
@@ -90,19 +91,19 @@ def row_to_profile(row) -> InfluencerProfileResponse:
 
 def current_influencer_user(credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme)) -> dict:
     if credentials is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token required")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.BEARER_TOKEN_REQUIRED)
     try:
         claims = decode_access_token(credentials.credentials)
         user_id = int(claims["sub"])
     except (ValueError, TypeError, KeyError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired access token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.INVALID_OR_EXPIRED_TOKEN)
 
     with connection_context() as connection:
         user = connection.execute("SELECT id, email, role FROM users WHERE id = ?", (user_id,)).fetchone()
     if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User no longer exists")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.USER_NO_LONGER_EXISTS)
     if user["role"] != "INFLUENCER":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only influencers can manage influencer profiles")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Messages.ONLY_INFLUENCERS_CAN_MANAGE_PROFILES)
     return dict(user)
 
 
@@ -111,7 +112,7 @@ def signup(payload: SignUpRequest) -> SignupPendingResponse:
     with connection_context() as connection:
         existing = connection.execute("SELECT id FROM users WHERE email = ?", (payload.email,)).fetchone()
         if existing:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account with this email already exists")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=Messages.ACCOUNT_ALREADY_EXISTS)
 
     password_hash = hash_password(payload.password)
     code = f"{__import__('secrets').randbelow(1_000_000):06d}"
@@ -145,13 +146,13 @@ def verify_email(payload: VerifyEmailRequest) -> AuthResponse:
         ).fetchone()
 
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No pending verification for this email")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.NO_PENDING_VERIFICATION)
 
     if datetime.utcnow() > datetime.fromisoformat(row["expires_at"]):
-        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Verification code has expired. Please sign up again.")
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail=Messages.VERIFICATION_CODE_EXPIRED)
 
     if row["code"] != payload.code:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Incorrect verification code")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=Messages.INCORRECT_VERIFICATION_CODE)
 
     try:
         with connection_context() as connection:
@@ -166,7 +167,7 @@ def verify_email(payload: VerifyEmailRequest) -> AuthResponse:
             ).fetchone()
     except Exception as error:
         if "UNIQUE constraint failed: users.email" in str(error):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account with this email already exists") from error
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=Messages.ACCOUNT_ALREADY_EXISTS) from error
         raise
 
     user = row_to_user(user_row)
@@ -179,7 +180,7 @@ def signin(payload: SignInRequest) -> AuthResponse:
         row = connection.execute("SELECT * FROM users WHERE email = ?", (payload.email,)).fetchone()
 
     if row is None or not verify_password(payload.password, row["password_hash"]):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.INVALID_CREDENTIALS)
 
     user = row_to_user(row)
     return AuthResponse(access_token=create_access_token(user.id, user.email, user.role), user=user)
@@ -188,7 +189,7 @@ def signin(payload: SignInRequest) -> AuthResponse:
 @app.get("/api/auth/google")
 def google_login(state: str = "") -> RedirectResponse:
     if not GOOGLE_CLIENT_ID:
-        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.")
+        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=Messages.GOOGLE_OAUTH_NOT_CONFIGURED)
     params = {
         "client_id": GOOGLE_CLIENT_ID,
         "redirect_uri": GOOGLE_REDIRECT_URI,
@@ -312,11 +313,11 @@ async def create_influencer_profile(
     except sqlite3.IntegrityError as error:
         message = str(error)
         if "influencer_profiles.user_id" in message:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You already have an influencer profile") from error
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=Messages.PROFILE_ALREADY_EXISTS) from error
         if "influencer_profiles.username" in message:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This username is already taken") from error
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=Messages.USERNAME_TAKEN) from error
         if "FOREIGN KEY" in message:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found") from error
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.CATEGORY_NOT_FOUND) from error
         raise
     return row_to_profile(row)
 
@@ -330,7 +331,7 @@ def get_my_influencer_profile(
             "SELECT * FROM influencer_profiles WHERE user_id = ?", (user["id"],)
         ).fetchone()
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No influencer profile yet")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.NO_PROFILE_YET)
     return row_to_profile(row)
 
 
@@ -382,7 +383,7 @@ async def update_influencer_profile(
     if avatar:
         updates["avatar_url"] = await save_avatar(avatar)
     if not updates:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one profile field is required")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.AT_LEAST_ONE_PROFILE_FIELD_REQUIRED)
 
     allowed_fields = (
         "username", "display_name", "bio", "category_id", "location", "avatar_url", "available_from", "available_to",
@@ -399,15 +400,15 @@ async def update_influencer_profile(
                 values,
             )
             if cursor.rowcount == 0:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Influencer profile not found")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.PROFILE_NOT_FOUND)
             connection.commit()
             row = connection.execute("SELECT * FROM influencer_profiles WHERE user_id = ?", (user["id"],)).fetchone()
     except sqlite3.IntegrityError as error:
         message = str(error)
         if "influencer_profiles.username" in message:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This username is already taken") from error
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=Messages.USERNAME_TAKEN) from error
         if "FOREIGN KEY" in message:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found") from error
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.CATEGORY_NOT_FOUND) from error
         raise
     return row_to_profile(row)
 
@@ -440,7 +441,7 @@ def get_public_influencer_profile(username: str) -> PublicInfluencerProfileRespo
             (username,),
         ).fetchone()
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Creator not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.CREATOR_NOT_FOUND)
     return row_to_public_profile(row)
 
 
@@ -451,7 +452,7 @@ def get_public_influencer_services(username: str) -> list[AdServiceResponse]:
             "SELECT user_id FROM influencer_profiles WHERE username = ?", (username,)
         ).fetchone()
         if profile is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Creator not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.CREATOR_NOT_FOUND)
         rows = connection.execute(
             "SELECT * FROM ad_services WHERE user_id = ? AND is_active = 1 ORDER BY price ASC",
             (profile["user_id"],),
@@ -487,19 +488,19 @@ def row_to_ad_service(row) -> AdServiceResponse:
 
 def current_authenticated_user(credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme)) -> dict:
     if credentials is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token required")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.BEARER_TOKEN_REQUIRED)
     try:
         claims = decode_access_token(credentials.credentials)
         user_id = int(claims["sub"])
     except (ValueError, TypeError, KeyError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired access token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.INVALID_OR_EXPIRED_TOKEN)
 
     with connection_context() as connection:
         user = connection.execute("SELECT id, email, role FROM users WHERE id = ?", (user_id,)).fetchone()
     if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User no longer exists")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.USER_NO_LONGER_EXISTS)
     if user["role"] != "INFLUENCER":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only influencers can manage ad services")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Messages.ONLY_INFLUENCERS_CAN_MANAGE_AD_SERVICES)
     return dict(user)
 
 
@@ -534,7 +535,7 @@ def create_ad_service(
     except sqlite3.IntegrityError as error:
         message = str(error)
         if "FOREIGN KEY" in message:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad type not found") from error
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.AD_TYPE_NOT_FOUND) from error
         raise
     return row_to_ad_service(row)
 
@@ -550,7 +551,7 @@ def update_ad_service(
         updates["is_active"] = int(payload.is_active) if payload.is_active is not None else updates.get("is_active")
 
     if not updates:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one field is required")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.AT_LEAST_ONE_FIELD_REQUIRED)
 
     allowed_fields = ("ad_type_id", "title", "description", "price", "currency", "is_active")
     assignments = ", ".join(f"{field} = ?" for field in updates if field in allowed_fields)
@@ -564,13 +565,13 @@ def update_ad_service(
                 values,
             )
             if cursor.rowcount == 0:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad service not found")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.AD_SERVICE_NOT_FOUND)
             connection.commit()
             row = connection.execute("SELECT * FROM ad_services WHERE id = ?", (service_id,)).fetchone()
     except sqlite3.IntegrityError as error:
         message = str(error)
         if "FOREIGN KEY" in message:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad type not found") from error
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.AD_TYPE_NOT_FOUND) from error
         raise
     return row_to_ad_service(row)
 
@@ -581,17 +582,17 @@ def update_ad_service(
 
 def current_any_user(credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme)) -> dict:
     if credentials is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token required")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.BEARER_TOKEN_REQUIRED)
     try:
         claims = decode_access_token(credentials.credentials)
         user_id = int(claims["sub"])
     except (ValueError, TypeError, KeyError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired access token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.INVALID_OR_EXPIRED_TOKEN)
 
     with connection_context() as connection:
         user = connection.execute("SELECT id, email, role FROM users WHERE id = ?", (user_id,)).fetchone()
     if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User no longer exists")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=Messages.USER_NO_LONGER_EXISTS)
     return dict(user)
 
 
@@ -654,7 +655,7 @@ def create_availability_block(
             row = connection.execute("SELECT * FROM availability_blocks WHERE id = ?", (cursor.lastrowid,)).fetchone()
     except sqlite3.IntegrityError as error:
         if "UNIQUE constraint failed" in str(error):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This date is already blocked") from error
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=Messages.DATE_ALREADY_BLOCKED) from error
         raise
     return row_to_availability_block(row)
 
@@ -670,7 +671,7 @@ def delete_availability_block(
             (user["id"], date),
         )
         if cursor.rowcount == 0:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blocked date not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.BLOCKED_DATE_NOT_FOUND)
         connection.commit()
 
 
@@ -692,7 +693,7 @@ def create_booking(
     user: dict = Depends(current_any_user),
 ) -> BookingResponse:
     if user["role"] != "CLIENT":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only clients can create bookings")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Messages.ONLY_CLIENTS_CAN_BOOK)
 
     with connection_context() as connection:
         service = connection.execute(
@@ -701,10 +702,10 @@ def create_booking(
         ).fetchone()
 
     if service is None or not service["is_active"]:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad service not found or inactive")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.AD_SERVICE_NOT_FOUND_OR_INACTIVE)
 
     if service["user_id"] == user["id"]:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot book your own service")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=Messages.CANNOT_BOOK_OWN_SERVICE)
 
     with connection_context() as connection:
         blocked = connection.execute(
@@ -712,7 +713,7 @@ def create_booking(
             (service["user_id"], payload.date),
         ).fetchone()
         if blocked is not None:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This date is not available")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=Messages.DATE_NOT_AVAILABLE)
 
         existing = connection.execute(
             """
@@ -722,16 +723,21 @@ def create_booking(
             (service["user_id"], payload.date),
         ).fetchone()
         if existing is not None:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This date is already booked")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=Messages.DATE_ALREADY_BOOKED)
 
     try:
         with connection_context() as connection:
             cursor = connection.execute(
                 """
-                INSERT INTO bookings (client_id, influencer_id, service_id, date, price, description)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO bookings (client_id, influencer_id, service_id, date, price, description,
+                    birthday_greeting, birthday_recipient, delivery_datetime, recipient_phone)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (user["id"], service["user_id"], payload.service_id, payload.date, service["price"], payload.description),
+                (
+                    user["id"], service["user_id"], payload.service_id, payload.date, service["price"],
+                    payload.description, payload.birthday_greeting, payload.birthday_recipient,
+                    payload.delivery_datetime, payload.recipient_phone,
+                ),
             )
             connection.commit()
             row = connection.execute("SELECT * FROM bookings WHERE id = ?", (cursor.lastrowid,)).fetchone()
@@ -768,10 +774,10 @@ def get_booking(
         row = connection.execute("SELECT * FROM bookings WHERE id = ?", (booking_id,)).fetchone()
 
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=Messages.BOOKING_NOT_FOUND)
 
     booking = dict(row)
     if user["id"] not in (booking["client_id"], booking["influencer_id"]):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have access to this booking")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=Messages.NO_ACCESS_TO_BOOKING)
 
     return row_to_booking(row)

@@ -24,15 +24,17 @@ import {
   getSession,
   SESSION_CHANGED_EVENT,
 } from "@/lib/auth";
+import { common } from "@/lib/i18n/common";
+import { dashboard as t } from "@/lib/i18n/dashboard";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
-    meta: [{ title: "Dashboard — Reklama.uz" }],
+    meta: [{ title: t.pageTitle }],
   }),
   component: Dashboard,
 });
 
-const NAV = [{ label: "Overview", to: "/dashboard", active: true }];
+const NAV = [{ label: t.navOverview, to: "/dashboard", active: true }];
 
 function toDateKey(date: Date): string {
   const year = date.getFullYear();
@@ -144,12 +146,12 @@ function Dashboard() {
               </div>
               <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
                 <LayoutDashboard className="h-3.5 w-3.5" />
-                {isInfluencer ? "Creator / Influencer" : "Business / Brand"}
+                {isInfluencer ? t.roleInfluencer : t.roleBusiness}
               </p>
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={handleLogout}>
-            Log out
+            {common.logOut}
           </Button>
         </div>
 
@@ -158,15 +160,15 @@ function Dashboard() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-primary">
-                {isInfluencer ? "Incoming" : "My campaigns"}
+                {isInfluencer ? t.incoming : t.myCampaigns}
               </p>
               <h2 className="mt-0.5 font-display text-2xl font-bold">
-                {isInfluencer ? "Booking requests" : "Your bookings"}
+                {isInfluencer ? t.bookingRequests : t.yourBookings}
               </h2>
             </div>
             {!isInfluencer && (
               <Button asChild variant="outline">
-                <Link to="/discover">Find creators</Link>
+                <Link to="/discover">{t.findCreators}</Link>
               </Button>
             )}
           </div>
@@ -184,24 +186,22 @@ function Dashboard() {
 
           {error && (
             <p className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive">
-              {error instanceof Error
-                ? error.message
-                : "Could not load bookings."}
+              {error instanceof Error ? error.message : t.couldNotLoadBookings}
             </p>
           )}
 
           {!isLoading && !error && (!bookings || bookings.length === 0) && (
             <div className="mt-6 flex flex-col items-center gap-3 rounded-3xl border border-border bg-card px-6 py-14 text-center shadow-soft">
               <ReceiptText className="h-8 w-8 text-muted-foreground/40" />
-              <p className="font-semibold">No bookings yet</p>
+              <p className="font-semibold">{t.noBookingsYet}</p>
               <p className="max-w-xs text-sm text-muted-foreground">
                 {isInfluencer
-                  ? "Brands that discover and book your services will appear here."
-                  : "Find a creator, pick a service, choose a date, and send your first request."}
+                  ? t.noBookingsInfluencerHint
+                  : t.noBookingsBusinessHint}
               </p>
               {!isInfluencer && (
                 <Button asChild className="mt-2">
-                  <Link to="/discover">Discover creators</Link>
+                  <Link to="/discover">{t.discoverCreators}</Link>
                 </Button>
               )}
             </div>
@@ -212,10 +212,12 @@ function Dashboard() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-surface text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    <th className="px-5 py-3">Reference</th>
-                    <th className="hidden px-5 py-3 sm:table-cell">Date</th>
-                    <th className="px-5 py-3">Amount</th>
-                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3">{t.tableReference}</th>
+                    <th className="hidden px-5 py-3 sm:table-cell">
+                      {t.tableDate}
+                    </th>
+                    <th className="px-5 py-3">{t.tableAmount}</th>
+                    <th className="px-5 py-3">{t.tableStatus}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border bg-card">
@@ -227,12 +229,24 @@ function Dashboard() {
                       <td className="px-5 py-4">
                         <p className="font-medium">
                           #{String(booking.id).padStart(5, "0")}
+                          {booking.birthday_recipient && (
+                            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-pink-50 px-2 py-0.5 text-xs font-medium text-pink-700 dark:bg-pink-900/20 dark:text-pink-400">
+                              🎂 Tabrik
+                            </span>
+                          )}
                         </p>
-                        {booking.description && (
+                        {booking.birthday_recipient ? (
+                          <div className="mt-0.5 space-y-0.5 text-xs text-muted-foreground">
+                            <p>{booking.birthday_recipient} · {booking.recipient_phone}</p>
+                            {booking.delivery_datetime && (
+                              <p>Yetkazib berish: {booking.delivery_datetime.replace("T", " ")}</p>
+                            )}
+                          </div>
+                        ) : booking.description ? (
                           <p className="mt-0.5 max-w-[200px] truncate text-xs text-muted-foreground">
                             {booking.description}
                           </p>
-                        )}
+                        ) : null}
                       </td>
                       <td className="hidden px-5 py-4 sm:table-cell">
                         <span className="inline-flex items-center gap-1.5 text-muted-foreground">
@@ -258,13 +272,14 @@ function Dashboard() {
 
         {isInfluencer && (
           <section>
-            <p className="text-sm font-medium text-primary">Calendar</p>
+            <p className="text-sm font-medium text-primary">
+              {t.calendarLabel}
+            </p>
             <h2 className="mt-0.5 font-display text-2xl font-bold">
-              Manage your availability
+              {t.manageAvailability}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Click a date to block or unblock it. Blocked dates can't be booked
-              by clients.
+              {t.availabilityHint}
             </p>
             <div className="mt-4 inline-block rounded-3xl border border-border bg-card p-2 shadow-soft">
               <Calendar

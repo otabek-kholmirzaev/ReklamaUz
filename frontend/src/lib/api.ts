@@ -1,4 +1,5 @@
 import { clearSession, getSession } from "@/lib/auth";
+import { errors } from "@/lib/i18n/errors";
 
 const apiBaseUrl = (
   import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000"
@@ -13,6 +14,10 @@ export type BookingResponse = {
   price: number;
   status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
   description: string | null;
+  birthday_greeting: string | null;
+  birthday_recipient: string | null;
+  delivery_datetime: string | null;
+  recipient_phone: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -95,9 +100,7 @@ export async function apiFetch<T>(
   try {
     response = await fetch(`${apiBaseUrl}${path}`, { ...options, headers });
   } catch {
-    throw new Error(
-      "Could not reach the server. Make sure the backend is running.",
-    );
+    throw new Error(errors.couldNotReachServer);
   }
 
   if (!response.ok) {
@@ -106,7 +109,7 @@ export async function apiFetch<T>(
     const payload = (await response.json().catch(() => null)) as any;
     const detail = payload?.detail;
     throw new Error(
-      typeof detail === "string" ? detail : `API error ${response.status}`,
+      typeof detail === "string" ? detail : errors.apiError(response.status),
     );
   }
 

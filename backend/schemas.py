@@ -3,14 +3,16 @@ from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator
 
+from .messages import Messages
+
 
 def _parse_iso_date(value: str) -> str:
     try:
         parsed = date_type.fromisoformat(value)
     except ValueError as error:
-        raise ValueError("Date must be in YYYY-MM-DD format") from error
+        raise ValueError(Messages.DATE_FORMAT_INVALID) from error
     if parsed < datetime.utcnow().date():
-        raise ValueError("Date cannot be in the past")
+        raise ValueError(Messages.DATE_IN_PAST)
     return parsed.isoformat()
 
 
@@ -18,7 +20,7 @@ def _parse_hhmm(value: str) -> str:
     try:
         parsed = time_type.fromisoformat(value)
     except ValueError as error:
-        raise ValueError("Time must be in HH:MM format") from error
+        raise ValueError(Messages.TIME_FORMAT_INVALID) from error
     return parsed.strftime("%H:%M")
 
 
@@ -37,7 +39,7 @@ class SignUpRequest(BaseModel):
     def normalize_email(cls, value: str) -> str:
         normalized = value.strip().lower()
         if "@" not in normalized or normalized.startswith("@") or normalized.endswith("@"):
-            raise ValueError("Enter a valid email address")
+            raise ValueError(Messages.INVALID_EMAIL)
         return normalized
 
 
@@ -189,6 +191,10 @@ class BookingCreate(BaseModel):
     service_id: int = Field(gt=0)
     date: str = Field(description="Booking date in YYYY-MM-DD format")
     description: str | None = None
+    birthday_greeting: str | None = None
+    birthday_recipient: str | None = None
+    delivery_datetime: str | None = None
+    recipient_phone: str | None = None
 
     @field_validator("date")
     @classmethod
@@ -205,6 +211,10 @@ class BookingResponse(BaseModel):
     price: float
     status: BookingStatus
     description: str | None
+    birthday_greeting: str | None = None
+    birthday_recipient: str | None = None
+    delivery_datetime: str | None = None
+    recipient_phone: str | None = None
     created_at: datetime
     updated_at: datetime
 

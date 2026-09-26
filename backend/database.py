@@ -70,6 +70,15 @@ def init_db() -> None:
         existing_user_columns = {row["name"] for row in connection.execute("PRAGMA table_info(users)")}
         if "google_id" not in existing_user_columns:
             connection.execute("ALTER TABLE users ADD COLUMN google_id VARCHAR(255)")
+        existing_booking_columns = {row["name"] for row in connection.execute("PRAGMA table_info(bookings)")}
+        for col, col_type in {
+            "birthday_greeting": "TEXT",
+            "birthday_recipient": "TEXT",
+            "delivery_datetime": "VARCHAR(32)",
+            "recipient_phone": "VARCHAR(30)",
+        }.items():
+            if col not in existing_booking_columns:
+                connection.execute(f"ALTER TABLE bookings ADD COLUMN {col} {col_type}")
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS categories (

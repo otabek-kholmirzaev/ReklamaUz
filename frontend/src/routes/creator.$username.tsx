@@ -12,6 +12,8 @@ import {
   Lock,
   MapPin,
   Music2,
+  PartyPopper,
+  Phone,
   Send,
   Star,
   TrendingUp,
@@ -61,16 +63,23 @@ import {
   type BookingResponse,
   type PublicInfluencerProfileResponse,
 } from "@/lib/api";
+import { creatorProfile as t } from "@/lib/i18n/creatorProfile";
+import { CATEGORY_LABELS, translateEnum } from "@/lib/i18n/enums";
 
 export const Route = createFileRoute("/creator/$username")({
   head: ({ params }) => {
     const creator = getCreator(params.username);
     const title = creator
-      ? `${creator.name} (@${creator.username}) — Reklama.uz`
-      : "Creator not found — Reklama.uz";
+      ? t.bookTitle(creator.name, creator.username)
+      : t.notFoundTitle;
     const description = creator
-      ? `Book advertising with ${creator.name} — ${creator.followers} followers and ${creator.engagement} engagement on ${creator.platforms.join(", ")}.`
-      : "This creator profile could not be found.";
+      ? t.bookDescription(
+          creator.name,
+          creator.followers,
+          creator.engagement,
+          creator.platforms.join(", "),
+        )
+      : t.notFoundDescription;
     return {
       meta: [
         { title },
@@ -83,11 +92,14 @@ export const Route = createFileRoute("/creator/$username")({
   component: CreatorProfileRoute,
 });
 
+const BIRTHDAY_PLATFORM = t.birthdayPlatform;
+
 const PLATFORM_ICON: Record<string, LucideIcon> = {
   Instagram,
   Telegram: Send,
   YouTube: Youtube,
   TikTok: Music2,
+  [BIRTHDAY_PLATFORM]: PartyPopper,
 };
 
 const TIME_OPTIONS = [
@@ -107,6 +119,7 @@ const TIME_OPTIONS = [
 
 function platformFromAdType(adTypeName: string | undefined): string {
   if (!adTypeName) return "Other";
+  if (adTypeName === "BIRTHDAY_WISH") return BIRTHDAY_PLATFORM;
   if (adTypeName.startsWith("INSTAGRAM")) return "Instagram";
   if (adTypeName.startsWith("TELEGRAM")) return "Telegram";
   if (adTypeName.startsWith("YOUTUBE")) return "YouTube";
@@ -142,8 +155,8 @@ function buildRealOnlyCreator(
     verified: false,
     category: profile.category_name,
     tags: [profile.category_name],
-    location: profile.location ?? "Location not set",
-    bio: profile.bio ?? "This creator hasn't added a bio yet.",
+    location: profile.location ?? t.locationNotSet,
+    bio: profile.bio ?? t.bioNotSet,
     platforms: [],
     followers: "—",
     followersNum: 0,
@@ -158,8 +171,8 @@ function buildRealOnlyCreator(
     matchReasons: [],
     availability:
       profile.available_from && profile.available_to
-        ? `Available ${profile.available_from}–${profile.available_to} daily`
-        : "Availability not set",
+        ? t.availableDaily(profile.available_from, profile.available_to)
+        : t.availabilityNotSet,
     unavailableDates: [],
   };
 }
@@ -216,13 +229,14 @@ function CreatorProfileRoute() {
       <div className="min-h-screen bg-background">
         <SiteNav />
         <main className="mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center sm:px-6">
-          <h1 className="font-display text-3xl font-bold">Creator not found</h1>
+          <h1 className="font-display text-3xl font-bold">
+            {t.notFoundHeading}
+          </h1>
           <p className="mt-3 text-muted-foreground">
-            We couldn't find a profile for "{username}". They may have changed
-            their username, or the link is incorrect.
+            {t.notFoundBody(username)}
           </p>
           <Button className="mt-6" asChild>
-            <Link to="/discover">Browse creators</Link>
+            <Link to="/discover">{t.browseCreators}</Link>
           </Button>
         </main>
         <SiteFooter />
@@ -241,7 +255,10 @@ function CreatorProfileRoute() {
         photo: realProfile.avatar_url ?? base.photo,
         availability:
           realProfile.available_from && realProfile.available_to
-            ? `Available ${realProfile.available_from}–${realProfile.available_to} daily`
+            ? t.availableDaily(
+                realProfile.available_from,
+                realProfile.available_to,
+              )
             : base.availability,
         unavailableDates: [
           ...(availability?.blocked_dates ?? []),
@@ -300,6 +317,10 @@ function CreatorProfile({
   const [bookingStep, setBookingStep] = useState<1 | 2 | 3>(1);
   const [campaignName, setCampaignName] = useState("");
   const [campaignBrief, setCampaignBrief] = useState("");
+  const [birthdayGreeting, setBirthdayGreeting] = useState("");
+  const [birthdayRecipient, setBirthdayRecipient] = useState("");
+  const [deliveryDateTime, setDeliveryDateTime] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
@@ -310,8 +331,8 @@ function CreatorProfile({
   const similar = (sameCategory.length > 0 ? sameCategory : others).slice(0, 3);
   const similarHeading =
     sameCategory.length > 0
-      ? `More in ${creator.category}`
-      : "More creators to explore";
+      ? t.moreInCategory(translateEnum(CATEGORY_LABELS, creator.category))
+      : t.moreCreatorsToExplore;
 
   const unavailableDates = creator.unavailableDates.map(
     (d) => new Date(`${d}T00:00:00`),
@@ -332,11 +353,17 @@ function CreatorProfile({
 
   const hasValidTimeRange = startTime < endTime;
 
+  const isBirthdayBooking = activePlatform === BIRTHDAY_PLATFORM;
+
   const openBooking = () => {
     setConfirmed(false);
     setBookingStep(1);
     setCampaignName("");
     setCampaignBrief("");
+    setBirthdayGreeting("");
+    setBirthdayRecipient("");
+    setDeliveryDateTime("");
+    setRecipientPhone("");
     setCardNumber("");
     setCardExpiry("");
     setCardCvc("");
@@ -363,7 +390,15 @@ function CreatorProfile({
         body: JSON.stringify({
           service_id: Number(selected!.id),
           date: toDateKey(selectedDate!),
-          description: `Publishing window: ${startTime}–${endTime}`,
+          description: isBirthdayBooking
+            ? `Tabrik: ${birthdayRecipient} uchun`
+            : `Publishing window: ${startTime}–${endTime}`,
+          ...(isBirthdayBooking && {
+            birthday_greeting: birthdayGreeting,
+            birthday_recipient: birthdayRecipient,
+            delivery_datetime: deliveryDateTime,
+            recipient_phone: recipientPhone,
+          }),
         }),
       }),
     onSuccess: () => {
@@ -380,7 +415,7 @@ function CreatorProfile({
     },
     onError: (error) =>
       setBookingError(
-        error instanceof Error ? error.message : "Could not send request.",
+        error instanceof Error ? error.message : t.couldNotSendRequest,
       ),
   });
 
@@ -409,13 +444,15 @@ function CreatorProfile({
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/discover">Discover</Link>
+                  <Link to="/discover">{t.discover}</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link to="/discover">{creator.category}</Link>
+                  <Link to="/discover">
+                    {translateEnum(CATEGORY_LABELS, creator.category)}
+                  </Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
@@ -443,7 +480,8 @@ function CreatorProfile({
                 )}
               </div>
               <p className="mt-1 text-muted-foreground">
-                @{creator.username} • {creator.category}
+                @{creator.username} •{" "}
+                {translateEnum(CATEGORY_LABELS, creator.category)}
               </p>
 
               <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
@@ -451,7 +489,7 @@ function CreatorProfile({
                   <Star className="h-4 w-4 fill-warning text-warning" />{" "}
                   {creator.rating}
                   <span className="text-muted-foreground">
-                    ({creator.reviews} reviews)
+                    ({t.reviewsCount(creator.reviews)})
                   </span>
                 </span>
                 <span className="inline-flex items-center gap-1 text-muted-foreground">
@@ -492,7 +530,7 @@ function CreatorProfile({
                       fav && "fill-primary text-primary",
                     )}
                   />
-                  {fav ? "Saved" : "Save"}
+                  {fav ? t.saved : t.save}
                 </Button>
               </div>
             </div>
@@ -501,18 +539,18 @@ function CreatorProfile({
           <dl className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
             <StatTile
               icon={Users}
-              label="Followers"
+              label={t.followers}
               value={creator.followers}
             />
-            <StatTile icon={Eye} label="Avg. views" value={creator.avgViews} />
+            <StatTile icon={Eye} label={t.avgViews} value={creator.avgViews} />
             <StatTile
               icon={TrendingUp}
-              label="Engagement"
+              label={t.engagement}
               value={creator.engagement}
             />
             <StatTile
               icon={Zap}
-              label="Response rate"
+              label={t.responseRate}
               value={creator.responseRate}
             />
           </dl>
@@ -523,20 +561,22 @@ function CreatorProfile({
         <section>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="text-sm font-medium text-primary">Book a service</p>
+              <p className="text-sm font-medium text-primary">
+                {t.bookServiceEyebrow}
+              </p>
               <h2 className="mt-1 font-display text-2xl font-bold">
-                Advertising packages
+                {t.advertisingPackages}
               </h2>
             </div>
             <p className="text-sm text-muted-foreground">
-              Select a platform, service, date and time.
+              {t.selectPlatformServiceDateTime}
             </p>
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
             <aside className="rounded-3xl border border-border bg-surface p-4 lg:sticky lg:top-24 lg:h-fit">
               <p className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                1. Platform
+                {t.step1Platform}
               </p>
               <div className="mt-3 space-y-2">
                 {platforms.map((platform) => {
@@ -580,10 +620,10 @@ function CreatorProfile({
                   })()}
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      2. Service
+                      {t.step2Service}
                     </p>
                     <h3 className="font-display text-xl font-bold">
-                      {activePlatform} services
+                      {t.platformServices(activePlatform)}
                     </h3>
                   </div>
                 </div>
@@ -609,20 +649,21 @@ function CreatorProfile({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      3. Schedule
+                      {t.step3Schedule}
                     </p>
                     <h3 className="mt-1 font-display text-xl font-bold">
-                      Choose an available date and time
+                      {t.chooseAvailableDateTime}
                     </h3>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Blocked dates include existing bookings for{" "}
-                      {selected?.name ?? "this service"}.
+                      {t.blockedDatesInclude(selected?.name ?? t.thisService)}
                     </p>
                   </div>
                   {selected?.limit && (
                     <span className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground">
-                      {selected.limit.max - selected.limit.used} of{" "}
-                      {selected.limit.max} slots left
+                      {t.slotsLeft(
+                        selected.limit.max - selected.limit.used,
+                        selected.limit.max,
+                      )}
                     </span>
                   )}
                 </div>
@@ -644,45 +685,59 @@ function CreatorProfile({
                     />
                   </div>
                   <div className="rounded-2xl bg-surface p-5">
-                    <p className="font-semibold">Publishing window</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Choose the time period for the requested placement.
-                    </p>
-                    <div className="mt-5 grid grid-cols-2 gap-3">
-                      <label className="text-sm font-medium">
-                        From
-                        <select
-                          value={startTime}
-                          onChange={(event) => setStartTime(event.target.value)}
-                          className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
-                        >
-                          {TIME_OPTIONS.map((time) => (
-                            <option key={time}>{time}</option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="text-sm font-medium">
-                        To
-                        <select
-                          value={endTime}
-                          onChange={(event) => setEndTime(event.target.value)}
-                          className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
-                        >
-                          {TIME_OPTIONS.map((time) => (
-                            <option key={time}>{time}</option>
-                          ))}
-                        </select>
-                      </label>
-                    </div>
-                    {!hasValidTimeRange && (
-                      <p className="mt-2 text-xs text-destructive">
-                        End time must be after start time.
-                      </p>
+                    {isBirthdayBooking ? (
+                      <div className="flex items-center gap-2">
+                        <PartyPopper className="h-4 w-4 text-primary" />
+                        <div>
+                          <p className="font-semibold">{t.birthdayPlatform}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Sanani tanlang — tabrik ma'lumotlari keyingi bosqichda kiritiladi.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="font-semibold">{t.publishingWindow}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {t.choosePublishingPeriod}
+                        </p>
+                        <div className="mt-5 grid grid-cols-2 gap-3">
+                          <label className="text-sm font-medium">
+                            {t.from}
+                            <select
+                              value={startTime}
+                              onChange={(event) => setStartTime(event.target.value)}
+                              className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                            >
+                              {TIME_OPTIONS.map((time) => (
+                                <option key={time}>{time}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="text-sm font-medium">
+                            {t.to}
+                            <select
+                              value={endTime}
+                              onChange={(event) => setEndTime(event.target.value)}
+                              className="mt-1.5 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                            >
+                              {TIME_OPTIONS.map((time) => (
+                                <option key={time}>{time}</option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                        {!hasValidTimeRange && (
+                          <p className="mt-2 text-xs text-destructive">
+                            {t.endTimeAfterStart}
+                          </p>
+                        )}
+                      </>
                     )}
                     <div className="mt-6 border-t border-border pt-5">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">
-                          Package total
+                          {t.packageTotal}
                         </span>
                         <span className="font-display text-2xl font-bold">
                           ${selected?.price ?? 0}
@@ -696,16 +751,16 @@ function CreatorProfile({
                           !selected ||
                           isFull(selected) ||
                           !selectedDate ||
-                          !hasValidTimeRange
+                          (!isBirthdayBooking && !hasValidTimeRange)
                         }
                       >
                         {selected && isFull(selected)
-                          ? "Monthly capacity reached"
-                          : "Request to book"}
+                          ? t.monthlyCapacityReached
+                          : t.requestToBook}
                       </Button>
                       {!selectedDate && selected && !isFull(selected) && (
                         <p className="mt-2 text-center text-xs text-muted-foreground">
-                          Choose a date to continue
+                          {t.chooseDateToContinue}
                         </p>
                       )}
                     </div>
@@ -717,7 +772,7 @@ function CreatorProfile({
         </section>
 
         <section className="mt-14 border-t border-border pt-12">
-          <h2 className="font-display text-xl font-bold">About</h2>
+          <h2 className="font-display text-xl font-bold">{t.about}</h2>
           <p className="mt-3 max-w-3xl text-muted-foreground">{creator.bio}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             {creator.tags.map((tag) => (
@@ -725,20 +780,20 @@ function CreatorProfile({
                 key={tag}
                 className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
               >
-                {tag}
+                {translateEnum(CATEGORY_LABELS, tag)}
               </span>
             ))}
           </div>
           <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div>
               <h2 className="font-display text-xl font-bold">
-                Audience insights
+                {t.audienceInsights}
               </h2>
               <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                <InfoTile label="Age" value={creator.audience.age} />
-                <InfoTile label="Gender" value={creator.audience.gender} />
+                <InfoTile label={t.age} value={creator.audience.age} />
+                <InfoTile label={t.gender} value={creator.audience.gender} />
                 <InfoTile
-                  label="Primary market"
+                  label={t.primaryMarket}
                   value={creator.audience.country}
                 />
               </div>
@@ -764,7 +819,7 @@ function CreatorProfile({
             <div>
               <div className="flex items-center justify-between gap-2">
                 <h2 className="font-display text-xl font-bold">
-                  Client reviews
+                  {t.clientReviews}
                 </h2>
                 <span className="inline-flex items-center gap-1 text-sm font-medium">
                   <Star className="h-4 w-4 fill-warning text-warning" />{" "}
@@ -830,40 +885,59 @@ function CreatorProfile({
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-success" /> Request sent
+                  <CheckCircle2 className="h-5 w-5 text-success" />{" "}
+                  {t.requestSent}
                 </DialogTitle>
                 <DialogDescription>
-                  @{creator.username} has a {creator.responseRate} response rate
-                  and will confirm this booking shortly. You'll be notified as
-                  soon as they respond.
+                  {t.requestSentDescription(
+                    creator.username,
+                    creator.responseRate,
+                  )}
                 </DialogDescription>
               </DialogHeader>
               <div className="rounded-2xl border border-border bg-surface p-4 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Service</span>
+                  <span className="text-muted-foreground">{t.service}</span>
                   <span className="font-medium">{selected?.name}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-muted-foreground">Date</span>
+                  <span className="text-muted-foreground">{t.date}</span>
                   <span className="font-medium">
                     {selectedDate ? formatDate(selectedDate) : "—"}
                   </span>
                 </div>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-muted-foreground">Time</span>
-                  <span className="font-medium">
-                    {startTime}–{endTime}
-                  </span>
-                </div>
+                {isBirthdayBooking ? (
+                  <>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-muted-foreground">{t.recipient}</span>
+                      <span className="font-medium">{birthdayRecipient}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-muted-foreground">{t.deliveryDateLabel}</span>
+                      <span className="font-medium">{deliveryDateTime.replace("T", " ")}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-muted-foreground">{t.recipientPhoneLabel}</span>
+                      <span className="font-medium">{recipientPhone}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-muted-foreground">{t.time}</span>
+                    <span className="font-medium">
+                      {startTime}–{endTime}
+                    </span>
+                  </div>
+                )}
                 <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
-                  <span className="text-muted-foreground">Total</span>
+                  <span className="text-muted-foreground">{t.total}</span>
                   <span className="font-display text-lg font-bold">
                     ${selected?.price}
                   </span>
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={closeBooking}>Done</Button>
+                <Button onClick={closeBooking}>{t.done}</Button>
               </DialogFooter>
             </>
           ) : (
@@ -900,50 +974,54 @@ function CreatorProfile({
                 ))}
                 <span className="ml-1 text-xs text-muted-foreground">
                   {bookingStep === 1
-                    ? "Review"
+                    ? t.stepReview
                     : bookingStep === 2
-                      ? "Campaign details"
-                      : "Payment"}
+                      ? (isBirthdayBooking ? t.stepBirthdayDetails : t.stepCampaignDetails)
+                      : t.stepPayment}
                 </span>
               </div>
 
               {bookingStep === 1 && (
                 <>
                   <DialogHeader>
-                    <DialogTitle>Review your booking</DialogTitle>
+                    <DialogTitle>{t.reviewBookingTitle}</DialogTitle>
                     <DialogDescription>
-                      Confirm the service and schedule before continuing.
+                      {t.reviewBookingDescription}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="rounded-2xl border border-border bg-surface p-4 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Creator</span>
+                      <span className="text-muted-foreground">{t.creator}</span>
                       <span className="font-medium">@{creator.username}</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-muted-foreground">Service</span>
+                      <span className="text-muted-foreground">{t.service}</span>
                       <span className="font-medium">{selected?.name}</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-muted-foreground">Platform</span>
+                      <span className="text-muted-foreground">
+                        {t.platform}
+                      </span>
                       <span className="font-medium">{selected?.platform}</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-muted-foreground">Date</span>
+                      <span className="text-muted-foreground">{t.date}</span>
                       <span className="font-medium">
                         {selectedDate ? formatDate(selectedDate) : "—"}
                       </span>
                     </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-muted-foreground">
-                        Publishing window
-                      </span>
-                      <span className="font-medium">
-                        {startTime}–{endTime}
-                      </span>
-                    </div>
+                    {!isBirthdayBooking && (
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-muted-foreground">
+                          {t.publishingWindow}
+                        </span>
+                        <span className="font-medium">
+                          {startTime}–{endTime}
+                        </span>
+                      </div>
+                    )}
                     <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
-                      <span className="text-muted-foreground">Total</span>
+                      <span className="text-muted-foreground">{t.total}</span>
                       <span className="font-display text-lg font-bold">
                         ${selected?.price}
                       </span>
@@ -951,10 +1029,10 @@ function CreatorProfile({
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={closeBooking}>
-                      Cancel
+                      {t.cancel}
                     </Button>
                     <Button onClick={() => setBookingStep(2)}>
-                      Next — Campaign details
+                      {isBirthdayBooking ? t.nextBirthdayDetails : t.nextCampaignDetails}
                     </Button>
                   </DialogFooter>
                 </>
@@ -962,54 +1040,140 @@ function CreatorProfile({
 
               {bookingStep === 2 && (
                 <>
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" /> Campaign details
-                    </DialogTitle>
-                    <DialogDescription>
-                      Tell the creator what this campaign is about.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-medium">
-                        Campaign name{" "}
-                        <span className="text-muted-foreground">
-                          (optional)
-                        </span>
-                      </label>
-                      <input
-                        type="text"
-                        value={campaignName}
-                        onChange={(e) => setCampaignName(e.target.value)}
-                        placeholder="e.g. Summer collection launch"
-                        className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-sm font-medium">
-                        Brief & instructions
-                      </label>
-                      <textarea
-                        value={campaignBrief}
-                        onChange={(e) => setCampaignBrief(e.target.value)}
-                        placeholder="Describe the product, key messaging, hashtags, any do's or don'ts for the creator…"
-                        rows={4}
-                        className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        {campaignBrief.length}/1000 characters
-                      </p>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setBookingStep(1)}>
-                      Back
-                    </Button>
-                    <Button onClick={() => setBookingStep(3)}>
-                      Next — Payment
-                    </Button>
-                  </DialogFooter>
+                  {isBirthdayBooking ? (
+                    <>
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                          <PartyPopper className="h-4 w-4" /> {t.birthdayDetailsTitle}
+                        </DialogTitle>
+                        <DialogDescription>
+                          {t.birthdayDetailsDescription}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">
+                            {t.birthdayGreetingLabel}{" "}
+                            <span className="text-destructive">*</span>
+                          </label>
+                          <textarea
+                            value={birthdayGreeting}
+                            onChange={(e) => setBirthdayGreeting(e.target.value)}
+                            placeholder={t.birthdayGreetingPlaceholder}
+                            rows={4}
+                            className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">
+                            {t.birthdayRecipientLabel}{" "}
+                            <span className="text-destructive">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={birthdayRecipient}
+                            onChange={(e) => setBirthdayRecipient(e.target.value)}
+                            placeholder={t.birthdayRecipientPlaceholder}
+                            className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">
+                            {t.deliveryDateTimeLabel}{" "}
+                            <span className="text-destructive">*</span>
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={deliveryDateTime}
+                            onChange={(e) => setDeliveryDateTime(e.target.value)}
+                            className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {t.deliveryDateTimeHint}
+                          </p>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="flex items-center gap-1.5 text-sm font-medium">
+                            <Phone className="h-3.5 w-3.5" />
+                            {t.recipientPhoneLabel}{" "}
+                            <span className="text-destructive">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            value={recipientPhone}
+                            onChange={(e) => setRecipientPhone(e.target.value)}
+                            placeholder={t.recipientPhonePlaceholder}
+                            className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {t.recipientPhoneHint}
+                          </p>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setBookingStep(1)}>
+                          {t.back}
+                        </Button>
+                        <Button
+                          onClick={() => setBookingStep(3)}
+                          disabled={!birthdayGreeting || !birthdayRecipient || !deliveryDateTime || !recipientPhone}
+                        >
+                          {t.nextPayment}
+                        </Button>
+                      </DialogFooter>
+                    </>
+                  ) : (
+                    <>
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" /> {t.campaignDetailsTitle}
+                        </DialogTitle>
+                        <DialogDescription>
+                          {t.campaignDetailsDescription}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">
+                            {t.campaignName}{" "}
+                            <span className="text-muted-foreground">
+                              ({t.optional})
+                            </span>
+                          </label>
+                          <input
+                            type="text"
+                            value={campaignName}
+                            onChange={(e) => setCampaignName(e.target.value)}
+                            placeholder={t.campaignNamePlaceholder}
+                            className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">
+                            {t.briefInstructions}
+                          </label>
+                          <textarea
+                            value={campaignBrief}
+                            onChange={(e) => setCampaignBrief(e.target.value)}
+                            placeholder={t.briefPlaceholder}
+                            rows={4}
+                            className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {t.charactersCount(campaignBrief.length)}
+                          </p>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setBookingStep(1)}>
+                          {t.back}
+                        </Button>
+                        <Button onClick={() => setBookingStep(3)}>
+                          {t.nextPayment}
+                        </Button>
+                      </DialogFooter>
+                    </>
+                  )}
                 </>
               )}
 
@@ -1017,15 +1181,17 @@ function CreatorProfile({
                 <>
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4" /> Payment details
+                      <CreditCard className="h-4 w-4" /> {t.paymentDetailsTitle}
                     </DialogTitle>
                     <DialogDescription>
-                      Your card will not be charged until the creator confirms.
+                      {t.paymentDetailsDescription}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium">Card number</label>
+                      <label className="text-sm font-medium">
+                        {t.cardNumber}
+                      </label>
                       <div className="relative">
                         <CreditCard className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <input
@@ -1047,7 +1213,9 @@ function CreatorProfile({
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Expiry</label>
+                        <label className="text-sm font-medium">
+                          {t.expiry}
+                        </label>
                         <input
                           type="text"
                           inputMode="numeric"
@@ -1067,7 +1235,7 @@ function CreatorProfile({
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-sm font-medium">CVC</label>
+                        <label className="text-sm font-medium">{t.cvc}</label>
                         <div className="relative">
                           <input
                             type="text"
@@ -1086,19 +1254,18 @@ function CreatorProfile({
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium">
-                        Cardholder name
+                        {t.cardholderName}
                       </label>
                       <input
                         type="text"
                         value={cardHolder}
                         onChange={(e) => setCardHolder(e.target.value)}
-                        placeholder="Name on card"
+                        placeholder={t.cardholderPlaceholder}
                         className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                       />
                     </div>
                     <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Lock className="h-3 w-3" /> Payments are secured and
-                      processed after creator confirmation. No charge today.
+                      <Lock className="h-3 w-3" /> {t.paymentSecureNote}
                     </p>
                   </div>
                   {bookingError && (
@@ -1106,7 +1273,7 @@ function CreatorProfile({
                   )}
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setBookingStep(2)}>
-                      Back
+                      {t.back}
                     </Button>
                     <Button
                       onClick={submitBooking}
@@ -1118,9 +1285,7 @@ function CreatorProfile({
                         !cardHolder
                       }
                     >
-                      {bookingMutation.isPending
-                        ? "Sending…"
-                        : "Confirm & send request"}
+                      {bookingMutation.isPending ? t.sending : t.confirmAndSend}
                     </Button>
                   </DialogFooter>
                 </>
@@ -1145,7 +1310,7 @@ function firstAvailableId(creator: Creator, platform: string | undefined) {
 }
 
 function formatDate(date: Date) {
-  return date.toLocaleDateString("en-US", {
+  return date.toLocaleDateString("uz-Latn", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -1200,7 +1365,8 @@ function ServiceOption({
         <div className="mt-3">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              {full ? "Fully booked" : "Availability"} {service.limit.period}
+              {full ? t.fullyBooked : t.availabilityPrefix}{" "}
+              {service.limit.period}
             </span>
             <span>
               {service.limit.used}/{service.limit.max}
@@ -1251,20 +1417,20 @@ function InstagramInsights({ creator }: { creator: Creator }) {
     profileActivity: creator.username === "footballstar" ? "18.4K" : "9.6K",
     gender:
       creator.username === "footballstar"
-        ? "68% Female"
+        ? "68% ayol"
         : creator.audience.gender,
     age:
       creator.username === "footballstar" ? "25–34: 42%" : creator.audience.age,
     cities:
       creator.username === "footballstar"
         ? [
-            ["Tashkent", "61%"],
+            ["Toshkent", "61%"],
             ["Namangan", "14%"],
-            ["Samarkand", "8%"],
+            ["Samarqand", "8%"],
           ]
         : [
-            ["Tashkent", "54%"],
-            ["Samarkand", "12%"],
+            ["Toshkent", "54%"],
+            ["Samarqand", "12%"],
             ["Namangan", "9%"],
           ],
   };
@@ -1274,36 +1440,36 @@ function InstagramInsights({ creator }: { creator: Creator }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
-            <Instagram className="h-4 w-4" /> Instagram insights
+            <Instagram className="h-4 w-4" /> {t.instagramInsights}
           </p>
           <h2 className="mt-1 font-display text-xl font-bold">
-            Recent audience and content performance
+            {t.recentPerformance}
           </h2>
         </div>
         <span className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">
-          Mock import · last 30 days
+          {t.mockImportNote}
         </span>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <InfoTile label="Followers" value={creator.followers} />
-        <InfoTile label="Reach" value={insights.reach} />
-        <InfoTile label="Impressions" value={insights.impressions} />
-        <InfoTile label="Engagement" value={creator.engagement} />
-        <InfoTile label="Profile activity" value={insights.profileActivity} />
+        <InfoTile label={t.followers} value={creator.followers} />
+        <InfoTile label={t.reach} value={insights.reach} />
+        <InfoTile label={t.impressions} value={insights.impressions} />
+        <InfoTile label={t.engagement} value={creator.engagement} />
+        <InfoTile label={t.profileActivity} value={insights.profileActivity} />
       </div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center gap-2 font-semibold">
-            <Users className="h-4 w-4 text-primary" /> Audience
+            <Users className="h-4 w-4 text-primary" /> {t.audience}
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <InfoTile label="Gender" value={insights.gender} />
-            <InfoTile label="Largest age group" value={insights.age} />
+            <InfoTile label={t.gender} value={insights.gender} />
+            <InfoTile label={t.largestAgeGroup} value={insights.age} />
           </div>
           <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Top cities
+            {t.topCities}
           </p>
           <div className="mt-2 space-y-2">
             {insights.cities.map(([city, share], index) => (
@@ -1319,14 +1485,14 @@ function InstagramInsights({ creator }: { creator: Creator }) {
         </div>
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center gap-2 font-semibold">
-            <BarChart3 className="h-4 w-4 text-primary" /> Content-level
-            performance
+            <BarChart3 className="h-4 w-4 text-primary" />{" "}
+            {t.contentPerformance}
           </div>
           <div className="mt-4 space-y-3">
             {[
-              ["Latest Reel", "642K plays", "8.1% engagement"],
-              ["Product Story set", "184K reach", "4.8K link taps"],
-              ["Feed post", "96K reach", "6.7% engagement"],
+              [t.latestReel, t.plays("642K"), t.engagementPct("8.1%")],
+              [t.productStorySet, t.reachCount("184K"), t.linkTaps("4.8K")],
+              [t.feedPost, t.reachCount("96K"), t.engagementPct("6.7%")],
             ].map(([content, result, detail]) => (
               <div
                 key={content}
