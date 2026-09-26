@@ -81,3 +81,59 @@ class AdTypeResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+
+class AdServiceCreate(BaseModel):
+    ad_type_id: int = Field(gt=0)
+    title: str = Field(min_length=1, max_length=255)
+    description: str | None = None
+    price: float = Field(gt=0)
+    currency: str = Field(default="USD", min_length=1, max_length=10)
+
+
+class AdServiceUpdate(BaseModel):
+    ad_type_id: int | None = Field(default=None, gt=0)
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = None
+    price: float | None = Field(default=None, gt=0)
+    currency: str | None = Field(default=None, min_length=1, max_length=10)
+    is_active: bool | None = None
+
+
+class AdServiceResponse(BaseModel):
+    id: int
+    user_id: int
+    ad_type_id: int
+    title: str
+    description: str | None
+    price: float
+    currency: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class BookingStatus(str, Enum):
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    CANCELLED = "CANCELLED"
+    COMPLETED = "COMPLETED"
+
+
+class BookingCreate(BaseModel):
+    service_id: int = Field(gt=0)
+    date: str = Field(description="Booking date in YYYY-MM-DD format")
+    description: str | None = None
+
+
+class BookingResponse(BaseModel):
+    id: int
+    client_id: int
+    influencer_id: int
+    service_id: int
+    date: str
+    price: float
+    status: BookingStatus
+    description: str | None
+    created_at: datetime
+    updated_at: datetime
+
