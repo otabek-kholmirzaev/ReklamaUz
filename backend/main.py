@@ -16,6 +16,9 @@ from .schemas import (
     AdServiceUpdate,
     AdTypeResponse,
     AuthResponse,
+    BookingCreate,
+    BookingResponse,
+    BookingStatus,
     InfluencerProfileResponse,
     SignInRequest,
     SignUpRequest,
@@ -300,3 +303,106 @@ def update_ad_service(
     return row_to_ad_service(row)
 
 
+# ---------------------------------------------------------------------------
+# Shared auth dependency — any authenticated user (CLIENT or INFLUENCER)
+# ---------------------------------------------------------------------------
+
+def current_any_user(credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme)) -> dict:
+    if credentials is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token required")
+    try:
+        claims = decode_access_token(credentials.credentials)
+        user_id = int(claims["sub"])
+    except (ValueError, TypeError, KeyError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired access token")
+
+    with connection_context() as connection:
+        user = connection.execute("SELECT id, email, role FROM users WHERE id = ?", (user_id,)).fetchone()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User no longer exists")
+    return dict(user)
+
+
+# ---------------------------------------------------------------------------
+# Bookings
+# ---------------------------------------------------------------------------
+
+def row_to_booking(row) -> BookingResponse:
+    values = dict(row)
+    for field in ("created_at", "updated_at"):
+        if isinstance(values[field], str):
+            values[field] = datetime.fromisoformat(values[field])
+    return BookingResponse(**values)
+
+
+@app.post("/api/bookings", response_model=BookingResponse, status_code=status.HTTP_201_CREATED)
+def create_booking(
+    payload: BookingCreate,
+    user: dict = Depends(current_any_user),
+) -> BookingResponse:
+    if user["role"] != "CLIENT":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only clients can create bookings")
+
+    with connection_context() as connection:
+        service = connection.execute(
+            "SELECT id, user_id, price, is_active FROM ad_services WHERE id = ?",
+            (payload.service_id,),
+        ).fetchone()
+
+    if service is None or not service["is_active"]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad service not found or inactive")
+
+    if service["user_id"] == user["id"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot book your own service")
+
+    try:
+        with connection_context() as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO bookings (client_id, influencer_id, service_id, date, price, description)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (user["id"], service["user_id"], payload.service_id, payload.date, service["price"], payload.description),
+            )
+            connection.commit()
+            row = connection.execute("SELECT * FROM bookings WHERE id = ?", (cursor.lastrowid,)).fetchone()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
+
+    return row_to_booking(row)
+
+
+@app.get("/api/bookings/my", response_model=list[BookingResponse])
+def get_my_bookings(
+    user: dict = Depends(current_any_user),
+) -> list[BookingResponse]:
+    with connection_context() as connection:
+        if user["role"] == "CLIENT":
+            rows = connection.execute(
+                "SELECT * FROM bookings WHERE client_id = ? ORDER BY created_at DESC",
+                (user["id"],),
+            ).fetchall()
+        else:
+            rows = connection.execute(
+                "SELECT * FROM bookings WHERE influencer_id = ? ORDER BY created_at DESC",
+                (user["id"],),
+            ).fetchall()
+    return [row_to_booking(row) for row in rows]
+
+
+@app.get("/api/bookings/{booking_id}", response_model=BookingResponse)
+def get_booking(
+    booking_id: int,
+    user: dict = Depends(current_any_user),
+) -> BookingResponse:
+    with connection_context() as connection:
+        row = connection.execute("SELECT * FROM bookings WHERE id = ?", (booking_id,)).fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
+
+    booking = dict(row)
+    if user["id"] not in (booking["client_id"], booking["influencer_id"]):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have access to this booking")
+
+    return row_to_booking(row)

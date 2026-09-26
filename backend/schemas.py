@@ -110,3 +110,30 @@ class AdServiceResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
+
+class BookingStatus(str, Enum):
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    CANCELLED = "CANCELLED"
+    COMPLETED = "COMPLETED"
+
+
+class BookingCreate(BaseModel):
+    service_id: int = Field(gt=0)
+    date: str = Field(description="Booking date in YYYY-MM-DD format")
+    description: str | None = None
+
+
+class BookingResponse(BaseModel):
+    id: int
+    client_id: int
+    influencer_id: int
+    service_id: int
+    date: str
+    price: float
+    status: BookingStatus
+    description: str | None
+    created_at: datetime
+    updated_at: datetime
+

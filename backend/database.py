@@ -130,6 +130,26 @@ def init_db() -> None:
             )
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bookings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER NOT NULL,
+                influencer_id INTEGER NOT NULL,
+                service_id INTEGER NOT NULL,
+                date DATE NOT NULL,
+                price DECIMAL(10,2) NOT NULL,
+                status VARCHAR(20) NOT NULL DEFAULT 'PENDING'
+                    CHECK (status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED')),
+                description TEXT,
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (client_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (influencer_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (service_id) REFERENCES ad_services(id) ON DELETE CASCADE
+            )
+            """
+        )
         connection.commit()
 
 
