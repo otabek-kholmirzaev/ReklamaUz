@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   BadgeCheck,
   BarChart3,
@@ -47,6 +47,7 @@ import {
   type Creator,
   type Service,
 } from "@/lib/data";
+import { getSession } from "@/lib/auth";
 import { addBookingNotifications } from "@/lib/notifications";
 
 export const Route = createFileRoute("/creator/$username")({
@@ -119,6 +120,7 @@ function CreatorProfileRoute() {
 }
 
 function CreatorProfile({ creator }: { creator: Creator }) {
+  const navigate = useNavigate();
   const [fav, setFav] = useState(false);
   const platforms = Array.from(
     new Set(creator.services.map((s) => s.platform)),
@@ -162,6 +164,10 @@ function CreatorProfile({ creator }: { creator: Creator }) {
   const hasValidTimeRange = startTime < endTime;
 
   const openBooking = () => {
+    if (!getSession()) {
+      void navigate({ to: "/auth", search: { mode: "login" } });
+      return;
+    }
     setConfirmed(false);
     setBookingOpen(true);
   };
