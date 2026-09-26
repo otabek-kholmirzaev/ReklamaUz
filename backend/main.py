@@ -406,3 +406,17 @@ def get_booking(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have access to this booking")
 
     return row_to_booking(row)
+
+
+@app.get("/api/influencer/bookings", response_model=list[BookingResponse])
+def get_influencer_bookings(
+    user: dict = Depends(current_influencer_user),
+) -> list[BookingResponse]:
+    """Returns all bookings made by clients for the authenticated influencer, newest first."""
+    with connection_context() as connection:
+        rows = connection.execute(
+            "SELECT * FROM bookings WHERE influencer_id = ? ORDER BY created_at DESC",
+            (user["id"],),
+        ).fetchall()
+    return [row_to_booking(row) for row in rows]
+
