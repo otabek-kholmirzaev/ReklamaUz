@@ -1,10 +1,11 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, BadgeCheck, Sparkles, Star } from "lucide-react";
 import { useState } from "react";
 import heroBg from "@/assets/hero-bg.jpg";
 import { CreatorCard } from "@/components/creator-card";
 import { SiteFooter, SiteNav } from "@/components/site-nav";
 import { Button } from "@/components/ui/button";
+import { askCopilot } from "@/lib/copilot";
 import { creators } from "@/lib/data";
 
 export const Route = createFileRoute("/")({
@@ -28,8 +29,36 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  const navigate = useNavigate();
   const [brief, setBrief] = useState("");
+  const [isThinking, setIsThinking] = useState(false);
+  const [response, setResponse] = useState("");
+  const [recommendedUsernames, setRecommendedUsernames] = useState<string[]>([]);
+  const [chatError, setChatError] = useState("");
+
+  const findMatches = async () => {
+    const message = brief.trim();
+    if (!message) return;
+
+    setIsThinking(true);
+    setChatError("");
+    try {
+      const result = await askCopilot(message, []);
+      setResponse(result.message);
+      setRecommendedUsernames(result.recommendations);
+    } catch (error) {
+      setChatError(
+        error instanceof Error
+          ? error.message
+          : "Copilot could not respond right now.",
+      );
+    } finally {
+      setIsThinking(false);
+    }
+  };
+
+  const recommendedCreators = recommendedUsernames
+    .map((username) => creators.find((creator) => creator.username === username))
+    .filter((creator): creator is (typeof creators)[number] => Boolean(creator));
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,13 +125,30 @@ function Landing() {
                 Uzbekistan with a $1,500 budget.”
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button onClick={() => navigate({ to: "/matches" })}>
+                <Button onClick={() => void findMatches()} disabled={!brief.trim() || isThinking}>
                   <Sparkles className="mr-1 h-4 w-4" /> Find Matches
                 </Button>
                 <Button variant="ghost" asChild>
                   <Link to="/copilot">Open full copilot</Link>
                 </Button>
               </div>
+              {isThinking && <p className="mt-4 text-sm text-muted-foreground">Copilot is finding fitting creators…</p>}
+              {chatError && <p className="mt-4 text-sm text-destructive">{chatError}</p>}
+              {response && (
+                <div className="mt-5 rounded-2xl bg-surface p-4">
+                  <p className="text-sm leading-relaxed text-muted-foreground">{response}</p>
+                  {recommendedCreators.length > 0 && (
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                      {recommendedCreators.map((creator) => (
+                        <Link key={creator.username} to="/creator/$username" params={{ username: creator.username }} className="flex items-center gap-2 rounded-xl border border-border bg-card p-2.5 transition-colors hover:border-primary">
+                          <img src={creator.photo} alt="" className="h-9 w-9 rounded-lg object-cover" />
+                          <span className="min-w-0"><span className="block truncate text-sm font-semibold">{creator.name}</span><span className="block text-xs text-muted-foreground">@{creator.username} · View profile</span></span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
