@@ -11,6 +11,9 @@ from fastapi.staticfiles import StaticFiles
 
 from .database import connection_context, init_db
 from .schemas import (
+    AdServiceCreate,
+    AdServiceResponse,
+    AdServiceUpdate,
     AdTypeResponse,
     AuthResponse,
     InfluencerProfileResponse,
@@ -35,7 +38,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:3000")],
     allow_credentials=True,
-    allow_methods=["POST", "PATCH"],
+    allow_methods=["GET", "POST", "PATCH"],
     allow_headers=["*"]
 )
 
@@ -208,4 +211,92 @@ def get_ad_types() -> list[AdTypeResponse]:
             )
             for row in rows
         ]
+
+
+def row_to_ad_service(row) -> AdServiceResponse:
+    values = dict(row)
+    for field in ("created_at", "updated_at"):
+        if isinstance(values[field], str):
+            values[field] = datetime.fromisoformat(values[field])
+    values["is_active"] = bool(values["is_active"])
+    return AdServiceResponse(**values)
+
+
+def current_authenticated_user(credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme)) -> dict:
+    if credentials is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token required")
+    try:
+        claims = decode_access_token(credentials.credentials)
+        user_id = int(claims["sub"])
+    except (ValueError, TypeError, KeyError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired access token")
+
+    with connection_context() as connection:
+        user = connection.execute("SELECT id, email, role FROM users WHERE id = ?", (user_id,)).fetchone()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User no longer exists")
+    if user["role"] != "INFLUENCER":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only influencers can manage ad services")
+    return dict(user)
+
+
+@app.post("/api/ad-services", response_model=AdServiceResponse, status_code=status.HTTP_201_CREATED)
+def create_ad_service(
+    payload: AdServiceCreate,
+    user: dict = Depends(current_authenticated_user),
+) -> AdServiceResponse:
+    try:
+        with connection_context() as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO ad_services (user_id, ad_type_id, title, description, price, currency)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (user["id"], payload.ad_type_id, payload.title, payload.description, payload.price, payload.currency),
+            )
+            connection.commit()
+            row = connection.execute("SELECT * FROM ad_services WHERE id = ?", (cursor.lastrowid,)).fetchone()
+    except sqlite3.IntegrityError as error:
+        message = str(error)
+        if "FOREIGN KEY" in message:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad type not found") from error
+        raise
+    return row_to_ad_service(row)
+
+
+@app.patch("/api/ad-services/{service_id}", response_model=AdServiceResponse)
+def update_ad_service(
+    service_id: int,
+    payload: AdServiceUpdate,
+    user: dict = Depends(current_authenticated_user),
+) -> AdServiceResponse:
+    updates = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}
+    if "is_active" in payload.model_dump(exclude_unset=True):
+        updates["is_active"] = int(payload.is_active) if payload.is_active is not None else updates.get("is_active")
+
+    if not updates:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one field is required")
+
+    allowed_fields = ("ad_type_id", "title", "description", "price", "currency", "is_active")
+    assignments = ", ".join(f"{field} = ?" for field in updates if field in allowed_fields)
+    values = [updates[field] for field in updates if field in allowed_fields]
+    values.extend([datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), service_id, user["id"]])
+
+    try:
+        with connection_context() as connection:
+            cursor = connection.execute(
+                f"UPDATE ad_services SET {assignments}, updated_at = ? WHERE id = ? AND user_id = ?",
+                values,
+            )
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad service not found")
+            connection.commit()
+            row = connection.execute("SELECT * FROM ad_services WHERE id = ?", (service_id,)).fetchone()
+    except sqlite3.IntegrityError as error:
+        message = str(error)
+        if "FOREIGN KEY" in message:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ad type not found") from error
+        raise
+    return row_to_ad_service(row)
+
 
