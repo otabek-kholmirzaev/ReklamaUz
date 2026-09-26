@@ -1,14 +1,19 @@
 import { Link } from "@tanstack/react-router";
-import { Bell, Menu, MessageSquare, Search, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { Bell, BellDot, CalendarClock, Menu, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  type AppNotification,
+  getNotifications,
+  NOTIFICATIONS_EVENT,
+  saveNotifications,
+} from "@/lib/notifications";
 
 const links = [
-  { to: "/", label: "Discover" },
+  { to: "/", label: "Homepage" },
   { to: "/discover", label: "Creators" },
-  { to: "/discover", label: "Categories" },
-  { to: "/how-it-works", label: "How it Works" },
 ] as const;
 
 export function Logo() {
@@ -98,46 +103,123 @@ export function SiteNav() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="icon" aria-label="Search" asChild>
-            <Link to="/discover">
-              <Search className="h-4.5 w-4.5" />
-            </Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Messages"
-            className="hidden sm:inline-flex"
-            asChild
-          >
-            <Link to="/dashboard">
-              <MessageSquare className="h-4.5 w-4.5" />
-            </Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Notifications"
-            className="relative hidden sm:inline-flex"
-            asChild
-          >
-            <Link to="/dashboard">
-              <Bell className="h-4.5 w-4.5" />
-              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
-            </Link>
-          </Button>
+          <NotificationBell />
           <Button variant="ghost" className="hidden lg:inline-flex" asChild>
             <Link to="/studio">Become a Creator</Link>
           </Button>
           <Button variant="outline" className="hidden sm:inline-flex" asChild>
-            <Link to="/auth">Log in</Link>
+            <Link to="/auth" search={{ mode: "login" }}>
+              Log in
+            </Link>
           </Button>
           <Button asChild>
-            <Link to="/auth">Sign up</Link>
+            <Link to="/auth" search={{ mode: "signup" }}>
+              Sign up
+            </Link>
           </Button>
         </div>
       </div>
     </header>
+  );
+}
+
+function formatNotifDate(iso: string) {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function NotificationBell() {
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const load = () => setNotifications(getNotifications());
+    load();
+    window.addEventListener(NOTIFICATIONS_EVENT, load);
+    return () => window.removeEventListener(NOTIFICATIONS_EVENT, load);
+  }, []);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (next && unreadCount > 0) {
+      const updated = notifications.map((n) => ({ ...n, read: true }));
+      saveNotifications(updated);
+      setNotifications(updated);
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Notifications"
+          className="relative hidden sm:inline-flex"
+        >
+          {unreadCount > 0 ? (
+            <BellDot className="h-4.5 w-4.5" />
+          ) : (
+            <Bell className="h-4.5 w-4.5" />
+          )}
+          {unreadCount > 0 && (
+            <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold leading-none text-primary-foreground">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-0">
+        <div className="border-b border-border px-4 py-3">
+          <p className="font-display font-semibold">Notifications</p>
+          <p className="text-xs text-muted-foreground">Upcoming booking reminders</p>
+        </div>
+        {notifications.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 px-4 py-8 text-center text-sm text-muted-foreground">
+            <Bell className="h-7 w-7 opacity-30" />
+            <p>No notifications yet.</p>
+            <p className="text-xs">Reminders appear here after you book an ad.</p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-border">
+            {notifications.map((n) => (
+              <li key={n.id} className="flex gap-3 px-4 py-3">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+                  <CalendarClock className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold leading-tight">
+                    {n.reminderDaysBefore === 3
+                      ? "3-day reminder"
+                      : "1-day reminder"}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    @{n.creatorUsername} · {n.serviceName}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Ad on{" "}
+                    <span className="font-medium text-foreground">
+                      {formatNotifDate(n.bookingDate)}
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Reminder fires:{" "}
+                    <span className="font-medium text-foreground">
+                      {formatNotifDate(n.scheduledFor)}
+                    </span>
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 

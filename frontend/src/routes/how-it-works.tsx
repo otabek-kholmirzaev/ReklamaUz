@@ -76,7 +76,7 @@ const creatorSteps = [
   {
     icon: ClipboardList,
     t: "Get booked",
-    d: "Businesses request specific dates straight from your calendar. Accept, decline, or negotiate.",
+    d: "Businesses choose an available date and a listed service straight from your calendar. You simply confirm the request.",
   },
   {
     icon: Banknote,
@@ -95,8 +95,8 @@ const faqs = [
     a: "Businesses pay upfront when they book. Funds are held securely and released to the creator once delivery is confirmed.",
   },
   {
-    q: "Can I negotiate a custom package?",
-    a: 'Yes — every profile has a "Negotiate a package" option for custom formats, pricing, or requirements outside the standard packages.',
+    q: "What can a business book?",
+    a: "Every creator lists clear, fixed services such as Stories, Posts and Reels. Each service shows its price, monthly capacity and open publishing dates before a request is sent.",
   },
   {
     q: "What if a creator is fully booked?",

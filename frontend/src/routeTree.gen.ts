@@ -10,15 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CopilotRouteImport } from './routes/copilot'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as StudioRouteImport } from './routes/studio'
 import { Route as CreatorUsernameRouteImport } from './routes/creator.$username'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CopilotRoute = CopilotRouteImport.update({
@@ -41,6 +48,11 @@ const MatchesRoute = MatchesRouteImport.update({
   path: '/matches',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudioRoute = StudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreatorUsernameRoute = CreatorUsernameRouteImport.update({
   id: '/creator/$username',
   path: '/creator/$username',
@@ -49,62 +61,76 @@ const CreatorUsernameRoute = CreatorUsernameRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/copilot': typeof CopilotRoute
   '/discover': typeof DiscoverRoute
   '/how-it-works': typeof HowItWorksRoute
   '/matches': typeof MatchesRoute
+  '/studio': typeof StudioRoute
   '/creator/$username': typeof CreatorUsernameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/copilot': typeof CopilotRoute
   '/discover': typeof DiscoverRoute
   '/how-it-works': typeof HowItWorksRoute
   '/matches': typeof MatchesRoute
+  '/studio': typeof StudioRoute
   '/creator/$username': typeof CreatorUsernameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/copilot': typeof CopilotRoute
   '/discover': typeof DiscoverRoute
   '/how-it-works': typeof HowItWorksRoute
   '/matches': typeof MatchesRoute
+  '/studio': typeof StudioRoute
   '/creator/$username': typeof CreatorUsernameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/copilot'
     | '/discover'
     | '/how-it-works'
     | '/matches'
+    | '/studio'
     | '/creator/$username'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/auth'
     | '/copilot'
     | '/discover'
     | '/how-it-works'
     | '/matches'
+    | '/studio'
     | '/creator/$username'
   id:
     | '__root__'
     | '/'
+    | '/auth'
     | '/copilot'
     | '/discover'
     | '/how-it-works'
     | '/matches'
+    | '/studio'
     | '/creator/$username'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
   CopilotRoute: typeof CopilotRoute
   DiscoverRoute: typeof DiscoverRoute
   HowItWorksRoute: typeof HowItWorksRoute
   MatchesRoute: typeof MatchesRoute
+  StudioRoute: typeof StudioRoute
   CreatorUsernameRoute: typeof CreatorUsernameRoute
 }
 
@@ -115,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/copilot': {
@@ -145,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MatchesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/studio': {
+      id: '/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/creator/$username': {
       id: '/creator/$username'
       path: '/creator/$username'
@@ -157,10 +197,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
   CopilotRoute: CopilotRoute,
   DiscoverRoute: DiscoverRoute,
   HowItWorksRoute: HowItWorksRoute,
   MatchesRoute: MatchesRoute,
+  StudioRoute: StudioRoute,
   CreatorUsernameRoute: CreatorUsernameRoute,
 }
 export const routeTree = rootRouteImport
