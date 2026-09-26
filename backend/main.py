@@ -3,6 +3,10 @@ from datetime import datetime
 import os
 
 import sqlite3
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,15 +23,19 @@ from .schemas import (
     AuthResponse,
     AvailabilityBlockCreate,
     AvailabilityBlockResponse,
+    AvailabilityResponse,
     BookingCreate,
     BookingResponse,
     BookingStatus,
+    CategoryResponse,
     InfluencerProfileResponse,
+    PublicInfluencerProfileResponse,
     SignInRequest,
     SignUpRequest,
     SignupPendingResponse,
     UserResponse,
     VerifyEmailRequest,
+    _parse_hhmm,
 )
 from .security import create_access_token, decode_access_token, hash_password, verify_password
 from .storage import UPLOADS_DIR, save_avatar
@@ -114,7 +122,10 @@ def signup(payload: SignUpRequest) -> SignupPendingResponse:
         )
         connection.commit()
 
-    send_verification_email(payload.email, code)
+    try:
+        send_verification_email(payload.email, code)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
     return SignupPendingResponse(email=payload.email)
 
 
@@ -174,19 +185,37 @@ async def create_influencer_profile(
     category_id: int = Form(..., gt=0),
     bio: str | None = Form(None),
     location: str | None = Form(None),
+    available_from: str | None = Form(None),
+    available_to: str | None = Form(None),
+    phone: str | None = Form(None),
+    instagram_handle: str | None = Form(None),
+    tiktok_handle: str | None = Form(None),
+    youtube_url: str | None = Form(None),
+    telegram_handle: str | None = Form(None),
+    followers_range: str | None = Form(None),
     avatar: UploadFile | None = File(None),
     user: dict = Depends(current_influencer_user),
 ) -> InfluencerProfileResponse:
     avatar_url = await save_avatar(avatar) if avatar else None
     try:
+        available_from = _parse_hhmm(available_from) if available_from else None
+        available_to = _parse_hhmm(available_to) if available_to else None
+    except ValueError as error:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(error)) from error
+
+    try:
         with connection_context() as connection:
             cursor = connection.execute(
                 """
                 INSERT INTO influencer_profiles
-                    (user_id, username, display_name, bio, category_id, location, avatar_url)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (user_id, username, display_name, bio, category_id, location, avatar_url, available_from, available_to,
+                     phone, instagram_handle, tiktok_handle, youtube_url, telegram_handle, followers_range)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (user["id"], username, display_name, bio, category_id, location, avatar_url),
+                (
+                    user["id"], username, display_name, bio, category_id, location, avatar_url, available_from, available_to,
+                    phone, instagram_handle, tiktok_handle, youtube_url, telegram_handle, followers_range,
+                ),
             )
             connection.commit()
             row = connection.execute("SELECT * FROM influencer_profiles WHERE id = ?", (cursor.lastrowid,)).fetchone()
@@ -202,6 +231,19 @@ async def create_influencer_profile(
     return row_to_profile(row)
 
 
+@app.get("/api/influencer-profiles/me", response_model=InfluencerProfileResponse)
+def get_my_influencer_profile(
+    user: dict = Depends(current_influencer_user),
+) -> InfluencerProfileResponse:
+    with connection_context() as connection:
+        row = connection.execute(
+            "SELECT * FROM influencer_profiles WHERE user_id = ?", (user["id"],)
+        ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No influencer profile yet")
+    return row_to_profile(row)
+
+
 @app.patch("/api/influencer-profiles/me", response_model=InfluencerProfileResponse)
 async def update_influencer_profile(
     username: str | None = Form(None, min_length=3, max_length=255),
@@ -209,9 +251,25 @@ async def update_influencer_profile(
     category_id: int | None = Form(None, gt=0),
     bio: str | None = Form(None),
     location: str | None = Form(None),
+    available_from: str | None = Form(None),
+    available_to: str | None = Form(None),
+    phone: str | None = Form(None),
+    instagram_handle: str | None = Form(None),
+    tiktok_handle: str | None = Form(None),
+    youtube_url: str | None = Form(None),
+    telegram_handle: str | None = Form(None),
+    followers_range: str | None = Form(None),
     avatar: UploadFile | None = File(None),
     user: dict = Depends(current_influencer_user),
 ) -> InfluencerProfileResponse:
+    try:
+        if available_from is not None:
+            available_from = _parse_hhmm(available_from)
+        if available_to is not None:
+            available_to = _parse_hhmm(available_to)
+    except ValueError as error:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(error)) from error
+
     updates = {
         field: value
         for field, value in {
@@ -220,6 +278,14 @@ async def update_influencer_profile(
             "category_id": category_id,
             "bio": bio,
             "location": location,
+            "available_from": available_from,
+            "available_to": available_to,
+            "phone": phone,
+            "instagram_handle": instagram_handle,
+            "tiktok_handle": tiktok_handle,
+            "youtube_url": youtube_url,
+            "telegram_handle": telegram_handle,
+            "followers_range": followers_range,
         }.items()
         if value is not None
     }
@@ -228,7 +294,10 @@ async def update_influencer_profile(
     if not updates:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one profile field is required")
 
-    allowed_fields = ("username", "display_name", "bio", "category_id", "location", "avatar_url")
+    allowed_fields = (
+        "username", "display_name", "bio", "category_id", "location", "avatar_url", "available_from", "available_to",
+        "phone", "instagram_handle", "tiktok_handle", "youtube_url", "telegram_handle", "followers_range",
+    )
     assignments = ", ".join(f"{field} = ?" for field in updates if field in allowed_fields)
     values = [updates[field] for field in updates if field in allowed_fields]
     values.extend([datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), user["id"]])
@@ -251,6 +320,53 @@ async def update_influencer_profile(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found") from error
         raise
     return row_to_profile(row)
+
+
+@app.get("/api/categories", response_model=list[CategoryResponse])
+def get_categories() -> list[CategoryResponse]:
+    with connection_context() as connection:
+        rows = connection.execute("SELECT id, name FROM categories ORDER BY name ASC").fetchall()
+    return [CategoryResponse(id=row["id"], name=row["name"]) for row in rows]
+
+
+def row_to_public_profile(row) -> PublicInfluencerProfileResponse:
+    values = dict(row)
+    for field in ("created_at", "updated_at"):
+        if isinstance(values[field], str):
+            values[field] = datetime.fromisoformat(values[field])
+    return PublicInfluencerProfileResponse(**values)
+
+
+@app.get("/api/influencer-profiles/{username}", response_model=PublicInfluencerProfileResponse)
+def get_public_influencer_profile(username: str) -> PublicInfluencerProfileResponse:
+    with connection_context() as connection:
+        row = connection.execute(
+            """
+            SELECT influencer_profiles.*, categories.name AS category_name
+            FROM influencer_profiles
+            JOIN categories ON categories.id = influencer_profiles.category_id
+            WHERE influencer_profiles.username = ?
+            """,
+            (username,),
+        ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Creator not found")
+    return row_to_public_profile(row)
+
+
+@app.get("/api/influencer-profiles/{username}/services", response_model=list[AdServiceResponse])
+def get_public_influencer_services(username: str) -> list[AdServiceResponse]:
+    with connection_context() as connection:
+        profile = connection.execute(
+            "SELECT user_id FROM influencer_profiles WHERE username = ?", (username,)
+        ).fetchone()
+        if profile is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Creator not found")
+        rows = connection.execute(
+            "SELECT * FROM ad_services WHERE user_id = ? AND is_active = 1 ORDER BY price ASC",
+            (profile["user_id"],),
+        ).fetchall()
+    return [row_to_ad_service(row) for row in rows]
 
 
 @app.get("/api/ad-types", response_model=list[AdTypeResponse])
@@ -295,6 +411,18 @@ def current_authenticated_user(credentials: HTTPAuthorizationCredentials | None 
     if user["role"] != "INFLUENCER":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only influencers can manage ad services")
     return dict(user)
+
+
+@app.get("/api/ad-services/me", response_model=list[AdServiceResponse])
+def get_my_ad_services(
+    user: dict = Depends(current_authenticated_user),
+) -> list[AdServiceResponse]:
+    with connection_context() as connection:
+        rows = connection.execute(
+            "SELECT * FROM ad_services WHERE user_id = ? ORDER BY created_at DESC",
+            (user["id"],),
+        ).fetchall()
+    return [row_to_ad_service(row) for row in rows]
 
 
 @app.post("/api/ad-services", response_model=AdServiceResponse, status_code=status.HTTP_201_CREATED)
@@ -400,14 +528,25 @@ def get_my_availability(
     return [row_to_availability_block(row) for row in rows]
 
 
-@app.get("/api/availability/{influencer_id}", response_model=list[AvailabilityBlockResponse])
-def get_availability(influencer_id: int) -> list[AvailabilityBlockResponse]:
+@app.get("/api/availability/{influencer_id}", response_model=AvailabilityResponse)
+def get_availability(influencer_id: int) -> AvailabilityResponse:
     with connection_context() as connection:
-        rows = connection.execute(
-            "SELECT * FROM availability_blocks WHERE influencer_id = ? ORDER BY date ASC",
+        blocked_rows = connection.execute(
+            "SELECT date FROM availability_blocks WHERE influencer_id = ? ORDER BY date ASC",
             (influencer_id,),
         ).fetchall()
-    return [row_to_availability_block(row) for row in rows]
+        booked_rows = connection.execute(
+            """
+            SELECT DISTINCT date FROM bookings
+            WHERE influencer_id = ? AND status IN ('PENDING', 'CONFIRMED')
+            ORDER BY date ASC
+            """,
+            (influencer_id,),
+        ).fetchall()
+    return AvailabilityResponse(
+        blocked_dates=[row["date"] for row in blocked_rows],
+        booked_dates=[row["date"] for row in booked_rows],
+    )
 
 
 @app.post("/api/availability", response_model=AvailabilityBlockResponse, status_code=status.HTTP_201_CREATED)

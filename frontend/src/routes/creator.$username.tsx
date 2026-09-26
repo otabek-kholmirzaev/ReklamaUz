@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   BadgeCheck,
   BarChart3,
@@ -51,7 +51,6 @@ import {
   type Creator,
   type Service,
 } from "@/lib/data";
-import { getSession } from "@/lib/auth";
 import { addBookingNotifications } from "@/lib/notifications";
 import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 import {
@@ -277,7 +276,6 @@ function CreatorProfile({
   creator: Creator;
   bookingContext: { isReal: boolean; realServiceIds: Set<string> };
 }) {
-  const navigate = useNavigate();
   const [fav, setFav] = useState(() => isWishlisted(creator.username));
 
   useEffect(() => {
@@ -335,10 +333,6 @@ function CreatorProfile({
   const hasValidTimeRange = startTime < endTime;
 
   const openBooking = () => {
-    if (!getSession()) {
-      void navigate({ to: "/auth", search: { mode: "login" } });
-      return;
-    }
     setConfirmed(false);
     setBookingStep(1);
     setCampaignName("");
@@ -851,15 +845,21 @@ function CreatorProfile({
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-muted-foreground">Date</span>
-                  <span className="font-medium">{selectedDate ? formatDate(selectedDate) : "—"}</span>
+                  <span className="font-medium">
+                    {selectedDate ? formatDate(selectedDate) : "—"}
+                  </span>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-muted-foreground">Time</span>
-                  <span className="font-medium">{startTime}–{endTime}</span>
+                  <span className="font-medium">
+                    {startTime}–{endTime}
+                  </span>
                 </div>
                 <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
                   <span className="text-muted-foreground">Total</span>
-                  <span className="font-display text-lg font-bold">${selected?.price}</span>
+                  <span className="font-display text-lg font-bold">
+                    ${selected?.price}
+                  </span>
                 </div>
               </div>
               <DialogFooter>
@@ -872,21 +872,38 @@ function CreatorProfile({
               <div className="mb-1 flex items-center gap-2">
                 {([1, 2, 3] as const).map((s) => (
                   <div key={s} className="flex items-center gap-2">
-                    <span className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold",
-                      bookingStep === s
-                        ? "bg-primary text-primary-foreground"
-                        : bookingStep > s
-                          ? "bg-success/20 text-success"
-                          : "bg-muted text-muted-foreground",
-                    )}>
-                      {bookingStep > s ? <CheckCircle2 className="h-3.5 w-3.5" /> : s}
+                    <span
+                      className={cn(
+                        "flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold",
+                        bookingStep === s
+                          ? "bg-primary text-primary-foreground"
+                          : bookingStep > s
+                            ? "bg-success/20 text-success"
+                            : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {bookingStep > s ? (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      ) : (
+                        s
+                      )}
                     </span>
-                    {s < 3 && <div className={cn("h-px w-6", bookingStep > s ? "bg-success/40" : "bg-border")} />}
+                    {s < 3 && (
+                      <div
+                        className={cn(
+                          "h-px w-6",
+                          bookingStep > s ? "bg-success/40" : "bg-border",
+                        )}
+                      />
+                    )}
                   </div>
                 ))}
                 <span className="ml-1 text-xs text-muted-foreground">
-                  {bookingStep === 1 ? "Review" : bookingStep === 2 ? "Campaign details" : "Payment"}
+                  {bookingStep === 1
+                    ? "Review"
+                    : bookingStep === 2
+                      ? "Campaign details"
+                      : "Payment"}
                 </span>
               </div>
 
@@ -913,19 +930,29 @@ function CreatorProfile({
                     </div>
                     <div className="mt-2 flex items-center justify-between">
                       <span className="text-muted-foreground">Date</span>
-                      <span className="font-medium">{selectedDate ? formatDate(selectedDate) : "—"}</span>
+                      <span className="font-medium">
+                        {selectedDate ? formatDate(selectedDate) : "—"}
+                      </span>
                     </div>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-muted-foreground">Publishing window</span>
-                      <span className="font-medium">{startTime}–{endTime}</span>
+                      <span className="text-muted-foreground">
+                        Publishing window
+                      </span>
+                      <span className="font-medium">
+                        {startTime}–{endTime}
+                      </span>
                     </div>
                     <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
                       <span className="text-muted-foreground">Total</span>
-                      <span className="font-display text-lg font-bold">${selected?.price}</span>
+                      <span className="font-display text-lg font-bold">
+                        ${selected?.price}
+                      </span>
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button variant="outline" onClick={closeBooking}>Cancel</Button>
+                    <Button variant="outline" onClick={closeBooking}>
+                      Cancel
+                    </Button>
                     <Button onClick={() => setBookingStep(2)}>
                       Next — Campaign details
                     </Button>
@@ -945,7 +972,12 @@ function CreatorProfile({
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium">Campaign name <span className="text-muted-foreground">(optional)</span></label>
+                      <label className="text-sm font-medium">
+                        Campaign name{" "}
+                        <span className="text-muted-foreground">
+                          (optional)
+                        </span>
+                      </label>
                       <input
                         type="text"
                         value={campaignName}
@@ -955,7 +987,9 @@ function CreatorProfile({
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium">Brief & instructions</label>
+                      <label className="text-sm font-medium">
+                        Brief & instructions
+                      </label>
                       <textarea
                         value={campaignBrief}
                         onChange={(e) => setCampaignBrief(e.target.value)}
@@ -963,11 +997,15 @@ function CreatorProfile({
                         rows={4}
                         className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                       />
-                      <p className="text-xs text-muted-foreground">{campaignBrief.length}/1000 characters</p>
+                      <p className="text-xs text-muted-foreground">
+                        {campaignBrief.length}/1000 characters
+                      </p>
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setBookingStep(1)}>Back</Button>
+                    <Button variant="outline" onClick={() => setBookingStep(1)}>
+                      Back
+                    </Button>
                     <Button onClick={() => setBookingStep(3)}>
                       Next — Payment
                     </Button>
@@ -995,8 +1033,12 @@ function CreatorProfile({
                           inputMode="numeric"
                           value={cardNumber}
                           onChange={(e) => {
-                            const digits = e.target.value.replace(/\D/g, "").slice(0, 16);
-                            setCardNumber(digits.replace(/(\d{4})(?=\d)/g, "$1 "));
+                            const digits = e.target.value
+                              .replace(/\D/g, "")
+                              .slice(0, 16);
+                            setCardNumber(
+                              digits.replace(/(\d{4})(?=\d)/g, "$1 "),
+                            );
                           }}
                           placeholder="1234 5678 9012 3456"
                           className="w-full rounded-xl border border-input bg-background py-2.5 pl-10 pr-3 text-sm tracking-wider outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
@@ -1011,8 +1053,14 @@ function CreatorProfile({
                           inputMode="numeric"
                           value={cardExpiry}
                           onChange={(e) => {
-                            const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
-                            setCardExpiry(digits.length >= 3 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits);
+                            const digits = e.target.value
+                              .replace(/\D/g, "")
+                              .slice(0, 4);
+                            setCardExpiry(
+                              digits.length >= 3
+                                ? `${digits.slice(0, 2)}/${digits.slice(2)}`
+                                : digits,
+                            );
                           }}
                           placeholder="MM/YY"
                           className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
@@ -1025,7 +1073,11 @@ function CreatorProfile({
                             type="text"
                             inputMode="numeric"
                             value={cardCvc}
-                            onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                            onChange={(e) =>
+                              setCardCvc(
+                                e.target.value.replace(/\D/g, "").slice(0, 4),
+                              )
+                            }
                             placeholder="123"
                             className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/25"
                           />
@@ -1033,7 +1085,9 @@ function CreatorProfile({
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-sm font-medium">Cardholder name</label>
+                      <label className="text-sm font-medium">
+                        Cardholder name
+                      </label>
                       <input
                         type="text"
                         value={cardHolder}
@@ -1043,19 +1097,30 @@ function CreatorProfile({
                       />
                     </div>
                     <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Lock className="h-3 w-3" /> Payments are secured and processed after creator confirmation. No charge today.
+                      <Lock className="h-3 w-3" /> Payments are secured and
+                      processed after creator confirmation. No charge today.
                     </p>
                   </div>
                   {bookingError && (
                     <p className="text-sm text-destructive">{bookingError}</p>
                   )}
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setBookingStep(2)}>Back</Button>
+                    <Button variant="outline" onClick={() => setBookingStep(2)}>
+                      Back
+                    </Button>
                     <Button
                       onClick={submitBooking}
-                      disabled={bookingMutation.isPending || !cardNumber || !cardExpiry || !cardCvc || !cardHolder}
+                      disabled={
+                        bookingMutation.isPending ||
+                        !cardNumber ||
+                        !cardExpiry ||
+                        !cardCvc ||
+                        !cardHolder
+                      }
                     >
-                      {bookingMutation.isPending ? "Sending…" : "Confirm & send request"}
+                      {bookingMutation.isPending
+                        ? "Sending…"
+                        : "Confirm & send request"}
                     </Button>
                   </DialogFooter>
                 </>

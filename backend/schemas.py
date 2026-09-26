@@ -1,4 +1,4 @@
-from datetime import date as date_type, datetime
+from datetime import date as date_type, datetime, time as time_type
 from enum import Enum
 
 from pydantic import BaseModel, Field, field_validator
@@ -12,6 +12,14 @@ def _parse_iso_date(value: str) -> str:
     if parsed < datetime.utcnow().date():
         raise ValueError("Date cannot be in the past")
     return parsed.isoformat()
+
+
+def _parse_hhmm(value: str) -> str:
+    try:
+        parsed = time_type.fromisoformat(value)
+    except ValueError as error:
+        raise ValueError("Time must be in HH:MM format") from error
+    return parsed.strftime("%H:%M")
 
 
 class UserRole(str, Enum):
@@ -77,6 +85,14 @@ class InfluencerProfileCreate(BaseModel):
     bio: str | None = None
     category_id: int = Field(gt=0)
     location: str | None = None
+    available_from: str | None = None
+    available_to: str | None = None
+    phone: str | None = None
+    instagram_handle: str | None = None
+    tiktok_handle: str | None = None
+    youtube_url: str | None = None
+    telegram_handle: str | None = None
+    followers_range: str | None = None
 
 
 class InfluencerProfileUpdate(BaseModel):
@@ -85,6 +101,14 @@ class InfluencerProfileUpdate(BaseModel):
     bio: str | None = None
     category_id: int | None = Field(default=None, gt=0)
     location: str | None = None
+    available_from: str | None = None
+    available_to: str | None = None
+    phone: str | None = None
+    instagram_handle: str | None = None
+    tiktok_handle: str | None = None
+    youtube_url: str | None = None
+    telegram_handle: str | None = None
+    followers_range: str | None = None
 
 
 class InfluencerProfileResponse(BaseModel):
@@ -96,8 +120,25 @@ class InfluencerProfileResponse(BaseModel):
     category_id: int
     location: str | None
     avatar_url: str | None
+    available_from: str | None
+    available_to: str | None
+    phone: str | None
+    instagram_handle: str | None
+    tiktok_handle: str | None
+    youtube_url: str | None
+    telegram_handle: str | None
+    followers_range: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class PublicInfluencerProfileResponse(InfluencerProfileResponse):
+    category_name: str
+
+
+class CategoryResponse(BaseModel):
+    id: int
+    name: str
 
 
 class AdTypeResponse(BaseModel):
@@ -182,4 +223,9 @@ class AvailabilityBlockResponse(BaseModel):
     influencer_id: int
     date: str
     created_at: datetime
+
+
+class AvailabilityResponse(BaseModel):
+    blocked_dates: list[str]
+    booked_dates: list[str]
 

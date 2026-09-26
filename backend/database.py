@@ -105,6 +105,14 @@ def init_db() -> None:
                 category_id INTEGER NOT NULL,
                 location VARCHAR(255),
                 avatar_url VARCHAR(2048),
+                available_from VARCHAR(5),
+                available_to VARCHAR(5),
+                phone VARCHAR(30),
+                instagram_handle VARCHAR(255),
+                tiktok_handle VARCHAR(255),
+                youtube_url VARCHAR(2048),
+                telegram_handle VARCHAR(255),
+                followers_range VARCHAR(50),
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -112,6 +120,22 @@ def init_db() -> None:
             )
             """
         )
+        existing_columns = {
+            row["name"] for row in connection.execute("PRAGMA table_info(influencer_profiles)")
+        }
+        new_profile_columns = {
+            "available_from": "VARCHAR(5)",
+            "available_to": "VARCHAR(5)",
+            "phone": "VARCHAR(30)",
+            "instagram_handle": "VARCHAR(255)",
+            "tiktok_handle": "VARCHAR(255)",
+            "youtube_url": "VARCHAR(2048)",
+            "telegram_handle": "VARCHAR(255)",
+            "followers_range": "VARCHAR(50)",
+        }
+        for column, column_type in new_profile_columns.items():
+            if column not in existing_columns:
+                connection.execute(f"ALTER TABLE influencer_profiles ADD COLUMN {column} {column_type}")
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS ad_services (

@@ -1,11 +1,19 @@
 import { Link } from "@tanstack/react-router";
 import { BadgeCheck, Heart, MapPin, Star } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Creator } from "@/lib/data";
 import { cn } from "@/lib/utils";
+import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 
 export function CreatorCard({ creator }: { creator: Creator }) {
-  const [fav, setFav] = useState(false);
+  const [fav, setFav] = useState(() => isWishlisted(creator.username));
+
+  useEffect(() => {
+    const handler = () => setFav(isWishlisted(creator.username));
+    window.addEventListener(WISHLIST_EVENT, handler);
+    return () => window.removeEventListener(WISHLIST_EVENT, handler);
+  }, [creator.username]);
+
   const from = Math.min(...creator.services.map((s) => s.price));
 
   return (
@@ -27,8 +35,11 @@ export function CreatorCard({ creator }: { creator: Creator }) {
           />
         </Link>
         <button
-          onClick={() => setFav((v) => !v)}
-          aria-label="Favorite"
+          onClick={(event) => {
+            event.preventDefault();
+            setFav(toggleWishlist(creator.username));
+          }}
+          aria-label={fav ? "Remove from wishlist" : "Add to wishlist"}
           className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 backdrop-blur transition-colors hover:bg-background"
         >
           <Heart

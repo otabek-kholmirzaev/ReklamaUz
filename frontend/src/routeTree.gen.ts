@@ -11,12 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BecomeACreatorRouteImport } from './routes/become-a-creator'
 import { Route as CopilotRouteImport } from './routes/copilot'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as HowItWorksRouteImport } from './routes/how-it-works'
 import { Route as MatchesRouteImport } from './routes/matches'
 import { Route as StudioRouteImport } from './routes/studio'
+import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as CreatorUsernameRouteImport } from './routes/creator.$username'
 
 const IndexRoute = IndexRouteImport.update({
@@ -27,6 +29,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BecomeACreatorRoute = BecomeACreatorRouteImport.update({
+  id: '/become-a-creator',
+  path: '/become-a-creator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CopilotRoute = CopilotRouteImport.update({
@@ -59,6 +66,11 @@ const StudioRoute = StudioRouteImport.update({
   path: '/studio',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WishlistRoute = WishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CreatorUsernameRoute = CreatorUsernameRouteImport.update({
   id: '/creator/$username',
   path: '/creator/$username',
@@ -68,35 +80,41 @@ const CreatorUsernameRoute = CreatorUsernameRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/become-a-creator': typeof BecomeACreatorRoute
   '/copilot': typeof CopilotRoute
   '/dashboard': typeof DashboardRoute
   '/discover': typeof DiscoverRoute
   '/how-it-works': typeof HowItWorksRoute
   '/matches': typeof MatchesRoute
   '/studio': typeof StudioRoute
+  '/wishlist': typeof WishlistRoute
   '/creator/$username': typeof CreatorUsernameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/become-a-creator': typeof BecomeACreatorRoute
   '/copilot': typeof CopilotRoute
   '/dashboard': typeof DashboardRoute
   '/discover': typeof DiscoverRoute
   '/how-it-works': typeof HowItWorksRoute
   '/matches': typeof MatchesRoute
   '/studio': typeof StudioRoute
+  '/wishlist': typeof WishlistRoute
   '/creator/$username': typeof CreatorUsernameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/become-a-creator': typeof BecomeACreatorRoute
   '/copilot': typeof CopilotRoute
   '/dashboard': typeof DashboardRoute
   '/discover': typeof DiscoverRoute
   '/how-it-works': typeof HowItWorksRoute
   '/matches': typeof MatchesRoute
   '/studio': typeof StudioRoute
+  '/wishlist': typeof WishlistRoute
   '/creator/$username': typeof CreatorUsernameRoute
 }
 export interface FileRouteTypes {
@@ -104,46 +122,54 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/become-a-creator'
     | '/copilot'
     | '/dashboard'
     | '/discover'
     | '/how-it-works'
     | '/matches'
     | '/studio'
+    | '/wishlist'
     | '/creator/$username'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/become-a-creator'
     | '/copilot'
     | '/dashboard'
     | '/discover'
     | '/how-it-works'
     | '/matches'
     | '/studio'
+    | '/wishlist'
     | '/creator/$username'
   id:
     | '__root__'
     | '/'
     | '/auth'
+    | '/become-a-creator'
     | '/copilot'
     | '/dashboard'
     | '/discover'
     | '/how-it-works'
     | '/matches'
     | '/studio'
+    | '/wishlist'
     | '/creator/$username'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  BecomeACreatorRoute: typeof BecomeACreatorRoute
   CopilotRoute: typeof CopilotRoute
   DashboardRoute: typeof DashboardRoute
   DiscoverRoute: typeof DiscoverRoute
   HowItWorksRoute: typeof HowItWorksRoute
   MatchesRoute: typeof MatchesRoute
   StudioRoute: typeof StudioRoute
+  WishlistRoute: typeof WishlistRoute
   CreatorUsernameRoute: typeof CreatorUsernameRoute
 }
 
@@ -161,6 +187,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/become-a-creator': {
+      id: '/become-a-creator'
+      path: '/become-a-creator'
+      fullPath: '/become-a-creator'
+      preLoaderRoute: typeof BecomeACreatorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/copilot': {
@@ -205,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wishlist': {
+      id: '/wishlist'
+      path: '/wishlist'
+      fullPath: '/wishlist'
+      preLoaderRoute: typeof WishlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/creator/$username': {
       id: '/creator/$username'
       path: '/creator/$username'
@@ -218,12 +258,14 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  BecomeACreatorRoute: BecomeACreatorRoute,
   CopilotRoute: CopilotRoute,
   DashboardRoute: DashboardRoute,
   DiscoverRoute: DiscoverRoute,
   HowItWorksRoute: HowItWorksRoute,
   MatchesRoute: MatchesRoute,
   StudioRoute: StudioRoute,
+  WishlistRoute: WishlistRoute,
   CreatorUsernameRoute: CreatorUsernameRoute,
 }
 export const routeTree = rootRouteImport

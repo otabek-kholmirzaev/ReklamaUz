@@ -1,12 +1,29 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { BadgeCheck, CalendarDays, LayoutDashboard, ReceiptText, Store, UserRound } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  BadgeCheck,
+  CalendarDays,
+  LayoutDashboard,
+  ReceiptText,
+  Store,
+  UserRound,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { DashShell } from "@/components/dash-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import { apiFetch, type BookingResponse } from "@/lib/api";
-import { type AuthSession, clearSession, getSession, SESSION_CHANGED_EVENT } from "@/lib/auth";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  apiFetch,
+  type AvailabilityBlockResponse,
+  type BookingResponse,
+} from "@/lib/api";
+import {
+  type AuthSession,
+  clearSession,
+  getSession,
+  SESSION_CHANGED_EVENT,
+} from "@/lib/auth";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -17,8 +34,16 @@ export const Route = createFileRoute("/dashboard")({
 
 const NAV = [{ label: "Overview", to: "/dashboard", active: true }];
 
+function toDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function Dashboard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [session, setSessionState] = useState<AuthSession | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -40,15 +65,59 @@ function Dashboard() {
     return () => window.removeEventListener(SESSION_CHANGED_EVENT, handler);
   }, [navigate]);
 
-  const { data: bookings, isLoading, error } = useQuery({
+  const {
+    data: bookings,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["bookings", "my"],
     queryFn: () => apiFetch<BookingResponse[]>("/api/bookings/my"),
     enabled: ready && !!session,
   });
 
-  if (!ready || !session) return null;
+  const isInfluencer = session?.user.role === "INFLUENCER";
 
-  const isInfluencer = session.user.role === "INFLUENCER";
+  const { data: blockedDates } = useQuery({
+    queryKey: ["availability", "me"],
+    queryFn: () =>
+      apiFetch<AvailabilityBlockResponse[]>("/api/availability/me"),
+    enabled: ready && !!session && isInfluencer,
+  });
+
+  const blockMutation = useMutation({
+    mutationFn: (date: string) =>
+      apiFetch<AvailabilityBlockResponse>("/api/availability", {
+        method: "POST",
+        body: JSON.stringify({ date }),
+      }),
+    onSuccess: () =>
+      void queryClient.invalidateQueries({ queryKey: ["availability", "me"] }),
+  });
+
+  const unblockMutation = useMutation({
+    mutationFn: (date: string) =>
+      apiFetch<void>(`/api/availability/${date}`, { method: "DELETE" }),
+    onSuccess: () =>
+      void queryClient.invalidateQueries({ queryKey: ["availability", "me"] }),
+  });
+
+  const blockedDateKeys = new Set((blockedDates ?? []).map((b) => b.date));
+  const selectedDates = (blockedDates ?? []).map(
+    (b) => new Date(`${b.date}T00:00:00`),
+  );
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const handleAvailabilityToggle = (date: Date) => {
+    const key = toDateKey(date);
+    if (blockedDateKeys.has(key)) {
+      unblockMutation.mutate(key);
+    } else {
+      blockMutation.mutate(key);
+    }
+  };
+
+  if (!ready || !session) return null;
 
   const handleLogout = () => {
     clearSession();
@@ -62,7 +131,11 @@ function Dashboard() {
         <div className="flex flex-wrap items-start justify-between gap-4 rounded-3xl border border-border bg-card p-5 shadow-soft sm:p-6">
           <div className="flex items-center gap-4">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-accent-foreground">
-              {isInfluencer ? <UserRound className="h-6 w-6" /> : <Store className="h-6 w-6" />}
+              {isInfluencer ? (
+                <UserRound className="h-6 w-6" />
+              ) : (
+                <Store className="h-6 w-6" />
+              )}
             </span>
             <div>
               <div className="flex items-center gap-2">
@@ -101,14 +174,19 @@ function Dashboard() {
           {isLoading && (
             <div className="mt-4 space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 animate-pulse rounded-2xl bg-muted" />
+                <div
+                  key={i}
+                  className="h-16 animate-pulse rounded-2xl bg-muted"
+                />
               ))}
             </div>
           )}
 
           {error && (
             <p className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 px-5 py-4 text-sm text-destructive">
-              {error instanceof Error ? error.message : "Could not load bookings."}
+              {error instanceof Error
+                ? error.message
+                : "Could not load bookings."}
             </p>
           )}
 
@@ -142,7 +220,10 @@ function Dashboard() {
                 </thead>
                 <tbody className="divide-y divide-border bg-card">
                   {bookings.map((booking) => (
-                    <tr key={booking.id} className="transition-colors hover:bg-muted/40">
+                    <tr
+                      key={booking.id}
+                      className="transition-colors hover:bg-muted/40"
+                    >
                       <td className="px-5 py-4">
                         <p className="font-medium">
                           #{String(booking.id).padStart(5, "0")}
@@ -163,7 +244,9 @@ function Dashboard() {
                         ${booking.price.toFixed(2)}
                       </td>
                       <td className="px-5 py-4">
-                        <StatusBadge status={capitalizeStatus(booking.status)} />
+                        <StatusBadge
+                          status={capitalizeStatus(booking.status)}
+                        />
                       </td>
                     </tr>
                   ))}
@@ -172,6 +255,31 @@ function Dashboard() {
             </div>
           )}
         </section>
+
+        {isInfluencer && (
+          <section>
+            <p className="text-sm font-medium text-primary">Calendar</p>
+            <h2 className="mt-0.5 font-display text-2xl font-bold">
+              Manage your availability
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Click a date to block or unblock it. Blocked dates can't be booked
+              by clients.
+            </p>
+            <div className="mt-4 inline-block rounded-3xl border border-border bg-card p-2 shadow-soft">
+              <Calendar
+                mode="single"
+                selected={undefined}
+                onSelect={(date) => date && handleAvailabilityToggle(date)}
+                disabled={[{ before: today }]}
+                modifiers={{ blocked: selectedDates }}
+                modifiersClassNames={{
+                  blocked: "bg-destructive/15 text-destructive",
+                }}
+              />
+            </div>
+          </section>
+        )}
       </div>
     </DashShell>
   );

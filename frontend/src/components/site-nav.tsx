@@ -1,8 +1,20 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Bell, BellDot, CalendarClock, Heart, LogOut, Menu, Sparkles } from "lucide-react";
+import {
+  Bell,
+  BellDot,
+  CalendarClock,
+  Heart,
+  LogOut,
+  Menu,
+  Sparkles,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   clearSession,
@@ -39,7 +51,9 @@ export function Logo() {
 export function SiteNav() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [session, setSessionState] = useState<AuthSession | null>(() => getSession());
+  const [session, setSessionState] = useState<AuthSession | null>(() =>
+    getSession(),
+  );
 
   useEffect(() => {
     const handler = () => setSessionState(getSession());
@@ -177,7 +191,9 @@ export function SiteNav() {
 
 function AuthArea() {
   const navigate = useNavigate();
-  const [session, setSessionState] = useState<AuthSession | null>(() => getSession());
+  const [session, setSessionState] = useState<AuthSession | null>(() =>
+    getSession(),
+  );
 
   useEffect(() => {
     const handler = () => setSessionState(getSession());
@@ -212,7 +228,7 @@ function AuthArea() {
   return (
     <>
       <Button variant="ghost" className="hidden lg:inline-flex" asChild>
-        <Link to="/become-a-creator">Become a Creator</Link>
+        <Link to="/studio">Become a Creator</Link>
       </Button>
       <Button variant="outline" className="hidden sm:inline-flex" asChild>
         <Link to="/auth" search={{ mode: "login" }}>
@@ -225,6 +241,36 @@ function AuthArea() {
         </Link>
       </Button>
     </>
+  );
+}
+
+function WishlistButton() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const load = () => setCount(getWishlist().length);
+    load();
+    window.addEventListener(WISHLIST_EVENT, load);
+    return () => window.removeEventListener(WISHLIST_EVENT, load);
+  }, []);
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label="Wishlist"
+      className="relative hidden sm:inline-flex"
+      asChild
+    >
+      <Link to="/wishlist">
+        <Heart className="h-4.5 w-4.5" />
+        {count > 0 && (
+          <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold leading-none text-primary-foreground">
+            {count > 9 ? "9+" : count}
+          </span>
+        )}
+      </Link>
+    </Button>
   );
 }
 
@@ -282,13 +328,17 @@ function NotificationBell() {
       <PopoverContent align="end" className="w-80 p-0">
         <div className="border-b border-border px-4 py-3">
           <p className="font-display font-semibold">Notifications</p>
-          <p className="text-xs text-muted-foreground">Upcoming booking reminders</p>
+          <p className="text-xs text-muted-foreground">
+            Upcoming booking reminders
+          </p>
         </div>
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center gap-2 px-4 py-8 text-center text-sm text-muted-foreground">
             <Bell className="h-7 w-7 opacity-30" />
             <p>No notifications yet.</p>
-            <p className="text-xs">Reminders appear here after you book an ad.</p>
+            <p className="text-xs">
+              Reminders appear here after you book an ad.
+            </p>
           </div>
         ) : (
           <ul className="divide-y divide-border">
@@ -346,7 +396,7 @@ export function SiteFooter() {
           <Link to="/how-it-works" className="hover:text-foreground">
             How it works
           </Link>
-          <Link to="/become-a-creator" className="hover:text-foreground">
+          <Link to="/studio" className="hover:text-foreground">
             For creators
           </Link>
         </div>
