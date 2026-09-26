@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
 from datetime import datetime
 import os
+import urllib.parse
 
+import httpx
 import sqlite3
 from dotenv import load_dotenv
 
@@ -10,6 +12,7 @@ load_dotenv()
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
 
@@ -62,6 +65,10 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"]
 )
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/google/callback")
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -176,6 +183,89 @@ def signin(payload: SignInRequest) -> AuthResponse:
 
     user = row_to_user(row)
     return AuthResponse(access_token=create_access_token(user.id, user.email, user.role), user=user)
+
+
+@app.get("/api/auth/google")
+def google_login(state: str = "") -> RedirectResponse:
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.")
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "select_account",
+        "state": state,
+    }
+    return RedirectResponse("https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params))
+
+
+@app.get("/api/auth/google/callback")
+def google_callback(code: str = "", error: str = "", state: str = "") -> RedirectResponse:
+    # Use `state` as the frontend origin so any localhost port works in dev
+    frontend_origin = state or _frontend_url or "http://localhost:8081"
+
+    if error or not code:
+        return RedirectResponse(f"{frontend_origin}/auth?mode=login&google_error=cancelled")
+
+    try:
+        token_resp = httpx.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "redirect_uri": GOOGLE_REDIRECT_URI,
+                "grant_type": "authorization_code",
+            },
+            timeout=10,
+        )
+        token_resp.raise_for_status()
+        tokens = token_resp.json()
+    except Exception:
+        return RedirectResponse(f"{frontend_origin}/auth?mode=login&google_error=token_exchange_failed")
+
+    try:
+        userinfo_resp = httpx.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={"Authorization": f"Bearer {tokens['access_token']}"},
+            timeout=10,
+        )
+        userinfo_resp.raise_for_status()
+        userinfo = userinfo_resp.json()
+    except Exception:
+        return RedirectResponse(f"{frontend_origin}/auth?mode=login&google_error=userinfo_failed")
+
+    email: str = userinfo.get("email", "")
+    google_id: str = userinfo.get("sub", "")
+    if not email:
+        return RedirectResponse(f"{frontend_origin}/auth?mode=login&google_error=no_email")
+
+    with connection_context() as conn:
+        user_row = conn.execute("SELECT id, email, role FROM users WHERE email = ?", (email,)).fetchone()
+        if user_row is None:
+            cursor = conn.execute(
+                "INSERT INTO users (email, password_hash, role, google_id) VALUES (?, ?, ?, ?)",
+                (email, "", "CLIENT", google_id),
+            )
+            conn.commit()
+            user_row = conn.execute("SELECT id, email, role FROM users WHERE id = ?", (cursor.lastrowid,)).fetchone()
+        else:
+            conn.execute(
+                "UPDATE users SET google_id = ? WHERE id = ? AND (google_id IS NULL OR google_id = '')",
+                (google_id, user_row["id"]),
+            )
+            conn.commit()
+
+    jwt = create_access_token(user_row["id"], user_row["email"], user_row["role"])
+    qs = urllib.parse.urlencode({
+        "token": jwt,
+        "uid": user_row["id"],
+        "email": user_row["email"],
+        "role": user_row["role"],
+    })
+    return RedirectResponse(f"{frontend_origin}/auth?{qs}")
 
 
 @app.post("/api/influencer-profiles", response_model=InfluencerProfileResponse, status_code=status.HTTP_201_CREATED)

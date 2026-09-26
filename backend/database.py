@@ -60,12 +60,16 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email VARCHAR(320) NOT NULL UNIQUE,
-                password_hash VARCHAR(255) NOT NULL,
+                password_hash VARCHAR(255) NOT NULL DEFAULT '',
                 role VARCHAR(20) NOT NULL CHECK (role IN ('ADMIN', 'CLIENT', 'INFLUENCER')),
+                google_id VARCHAR(255),
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
+        existing_user_columns = {row["name"] for row in connection.execute("PRAGMA table_info(users)")}
+        if "google_id" not in existing_user_columns:
+            connection.execute("ALTER TABLE users ADD COLUMN google_id VARCHAR(255)")
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS categories (

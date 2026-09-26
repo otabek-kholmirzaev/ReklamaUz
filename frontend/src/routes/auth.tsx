@@ -14,7 +14,7 @@ import { Logo } from "@/components/site-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { clearSession, getSession, SESSION_CHANGED_EVENT, setSession, signin, signup, verifyEmail } from "@/lib/auth";
+import { apiBaseUrl, clearSession, getSession, SESSION_CHANGED_EVENT, setSession, signin, signup, verifyEmail } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 type AuthMode = "login" | "signup";
@@ -22,9 +22,22 @@ type UserRole = "CLIENT" | "INFLUENCER";
 type AuthStep = "form" | "verify";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    mode: search.mode === "signup" ? "signup" : ("login" as AuthMode),
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const result: {
+      mode: AuthMode;
+      token?: string;
+      uid?: string;
+      email?: string;
+      role?: string;
+      google_error?: string;
+    } = { mode: search["mode"] === "signup" ? "signup" : "login" };
+    if (typeof search["token"] === "string") result.token = search["token"];
+    if (typeof search["uid"] === "string") result.uid = search["uid"];
+    if (typeof search["email"] === "string") result.email = search["email"];
+    if (typeof search["role"] === "string") result.role = search["role"];
+    if (typeof search["google_error"] === "string") result.google_error = search["google_error"];
+    return result;
+  },
   head: () => ({
     meta: [
       { title: "Log in — Reklama.uz" },
@@ -61,7 +74,7 @@ function GoogleMark() {
 }
 
 function Auth() {
-  const { mode: routeMode } = Route.useSearch();
+  const { mode: routeMode, token, uid, email: googleEmail, role: googleRole, google_error } = Route.useSearch();
   const navigate = useNavigate({ from: "/auth" });
   const [mode, setMode] = useState<AuthMode>(routeMode);
   const [step, setStep] = useState<AuthStep>("form");
@@ -70,6 +83,21 @@ function Auth() {
   const [role, setRole] = useState<UserRole>("CLIENT");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Handle Google OAuth callback — token arrives in URL search params
+  useEffect(() => {
+    if (token && uid && googleEmail && googleRole) {
+      setSession({
+        accessToken: token,
+        user: { id: parseInt(uid), email: googleEmail, role: googleRole as "CLIENT" | "INFLUENCER" },
+      });
+      void navigate({ to: "/" });
+      return;
+    }
+    if (google_error) {
+      setError("Google sign-in failed. Please try again.");
+    }
+  }, [token, uid, googleEmail, googleRole, google_error, navigate]);
 
   // Redirect already-authenticated users away
   useEffect(() => {
@@ -274,8 +302,14 @@ function Auth() {
                   </p>
                 </div>
 
-                {/* Google — UI only, not connected */}
-                <Button type="button" variant="outline" className="mt-7 h-11 w-full" disabled>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-7 h-11 w-full"
+                  onClick={() => {
+                    window.location.href = `${apiBaseUrl}/api/auth/google?state=${encodeURIComponent(window.location.origin)}`;
+                  }}
+                >
                   <GoogleMark />
                   <span className="ml-2">Continue with Google</span>
                 </Button>
